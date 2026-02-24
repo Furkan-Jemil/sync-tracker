@@ -1,66 +1,66 @@
 "use client";
 
-import React, { useCallback, useMemo, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   ReactFlow,
   Controls,
   Background,
-  addEdge,
-  Connection,
   Edge,
   MarkerType,
 } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
 import '@xyflow/react/dist/style.css';
 
 import CustomNode from './CustomNode';
 import { getLayoutedElements } from './layout';
 import { useGraphStore } from '@/store/useGraphStore';
 import { useSocketGraph } from '@/hooks/useSocketGraph';
-import '@xyflow/react/dist/style.css';
+import { useStaleSync } from '@/hooks/useStaleSync';
 
-import CustomNode from './CustomNode';
-import { getLayoutedElements } from './layout';
 
 // Pre-defined Node types
 const nodeTypes = {
   customTaskNode: CustomNode,
 };
 
+const now = new Date().toISOString();
+
 // Example mock data matching the `system.md` structure Requirements
-const initialNodes = [
+const initialNodes: any[] = [
   {
     id: 'task-1',
     type: 'customTaskNode',
     position: { x: 0, y: 0 },
-    data: { id: 'task-1', name: 'Refactor Core Engine', role: 'Task', status: 'IN_SYNC', isTaskNode: true },
+    data: { id: 'task-1', name: 'Refactor Core Engine', role: 'Task', status: 'IN_SYNC', isTaskNode: true, lastSyncedAt: now },
     draggable: false,
   },
   {
     id: 'owner',
     type: 'customTaskNode',
     position: { x: 0, y: 0 },
-    data: { id: 'owner', name: 'Sarah Chen', role: 'Responsible Owner', status: 'IN_SYNC' },
+    data: { id: 'owner', name: 'Sarah Chen', role: 'Responsible Owner', status: 'IN_SYNC', lastSyncedAt: now },
     draggable: false,
   },
   {
     id: 'contrib-1',
     type: 'customTaskNode',
     position: { x: 0, y: 0 },
-    data: { id: 'contrib-1', name: 'Alex Doe', role: 'Contributor', status: 'NEEDS_UPDATE' },
+    data: { id: 'contrib-1', name: 'Alex Doe', role: 'Contributor', status: 'NEEDS_UPDATE', lastSyncedAt: now },
     draggable: false,
   },
   {
     id: 'contrib-2',
     type: 'customTaskNode',
     position: { x: 0, y: 0 },
-    data: { id: 'contrib-2', name: 'Jamie Smith', role: 'Helper', status: 'HELP_REQUESTED' },
+    data: { id: 'contrib-2', name: 'Jamie Smith', role: 'Helper', status: 'HELP_REQUESTED', lastSyncedAt: now },
     draggable: false,
   },
   {
     id: 'reviewer',
     type: 'customTaskNode',
     position: { x: 0, y: 0 },
-    data: { id: 'reviewer', name: 'Dr. Review', role: 'Reviewer', status: 'BLOCKED' },
+    data: { id: 'reviewer', name: 'Dr. Review', role: 'Reviewer', status: 'BLOCKED', lastSyncedAt: now },
     draggable: false,
   },
 ];
@@ -72,52 +72,46 @@ const initialEdges: Edge[] = [
   { id: 'e-task-reviewer', source: 'task-1', target: 'reviewer', type: 'smoothstep', markerEnd: { type: MarkerType.ArrowClosed } },
 ];
 
-// Layout the nodes before initializing the state
-const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-  initialNodes,
-  initialEdges
-);
-
 export const SyncGraph = ({ taskId }: { taskId: string }) => {
   // Bind real-time socket listeners
   useSocketGraph(taskId);
+
+  // Background check for stale syncs
+  useStaleSync();
   
   // Pull centralized React Flow state manipulated by those sockets
-  const { nodes, edges, setNodes, setEdges, initializeGraph } = useGraphStore();
+  const { nodes, edges, initializeGraph } = useGraphStore();
 
   useEffect(() => {
     // Initial Hydration
-    // In production, you would fetch these from TanStack query here.
-    initializeGraph(initialNodes, initialEdges);
+    initializeGraph(initialNodes as any, initialEdges);
   }, [initializeGraph]);
 
   const onNodesChange = useCallback(
     (changes: any) => {
-      // Typically xyflow handles this internally via useNodesState,
-      // but manually applying changes securely protects structure while allowing selection.
-      setNodes(nodes); 
+      // In a real app we'd handle changes via applyNodeChanges,
+      // but here we keep the graph immutable/driven by store.
     },
-    [nodes, setNodes]
+    []
   );
 
   const onEdgesChange = useCallback(
     (changes: any) => {
-      setEdges(edges);
     },
-    [edges, setEdges]
+    []
   );
 
   return (
-    <div style={{ width: '100%', height: '100vh', background: '#f8fafc' }}>
+    <div className="w-full h-screen bg-slate-50">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        nodeTypes={nodeTypes}
+        nodeTypes={nodeTypes as any}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         elementsSelectable={true}
-        nodesConnectable={false} // Enforcing strict structural requirements
-        nodesDraggable={false}   // Enforcing strict requirement: "Nodes are NOT draggable"
+        nodesConnectable={false}
+        nodesDraggable={false}
         fitView
         attributionPosition="bottom-right"
         className="sync-tracker-graph"
@@ -128,3 +122,4 @@ export const SyncGraph = ({ taskId }: { taskId: string }) => {
     </div>
   );
 };
+

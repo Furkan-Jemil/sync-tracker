@@ -52,6 +52,7 @@ export const useSocketGraph = (taskId: string) => {
           name: payload.name,     
           role: payload.role,
           status: 'IN_SYNC' as SyncStatus,
+          lastSyncedAt: new Date().toISOString(),
         },
         draggable: false, 
       };

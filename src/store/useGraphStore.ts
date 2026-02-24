@@ -10,9 +10,9 @@ interface GraphStore {
   setEdges: (edges: Edge[]) => void;
   
   // Real-time operations
-  addParticipantNode: (node: Node<SyncNodeData>, parentId: string) => void;
+  addParticipantNode: (newNode: Node<SyncNodeData>, parentId: string) => void;
   updateNodeStatus: (nodeId: string, status: SyncNodeData['status']) => void;
-  initializeGraph: (nodes: Node<SyncNodeData>[], edges: Edge[]) => void;
+  initializeGraph: (initialNodes: Node<SyncNodeData>[], initialEdges: Edge[]) => void;
 }
 
 export const useGraphStore = create<GraphStore>((set, get) => ({
@@ -28,7 +28,8 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       initialNodes,
       initialEdges
     );
-    set({ nodes: layoutedNodes, edges: layoutedEdges });
+    // Explicitly cast to Node<SyncNodeData>[] to satisfy the store contract
+    set({ nodes: layoutedNodes as Node<SyncNodeData>[], edges: layoutedEdges });
   },
 
   addParticipantNode: (newNode, parentId) => {
@@ -38,9 +39,9 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
     if (nodes.find(n => n.id === newNode.id)) return;
 
     // Add animating class to the new node for visual flair
-    const nodeWithEnterAnim = {
+    const nodeWithEnterAnim: Node<SyncNodeData> = {
       ...newNode,
-      className: 'animate-in fade-in zoom-in duration-500' // Requires standard tailwind-animate plugin or custom keyframes
+      className: 'animate-in fade-in zoom-in duration-500' 
     };
 
     const newEdge: Edge = {
@@ -48,7 +49,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       source: parentId,
       target: newNode.id,
       type: 'smoothstep',
-      animated: true, // Edge drawing animation
+      animated: true, 
       markerEnd: { type: MarkerType.ArrowClosed },
     };
 
@@ -58,7 +59,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
       [...edges, newEdge]
     );
 
-    set({ nodes: layoutedNodes, edges: layoutedEdges });
+    set({ nodes: layoutedNodes as Node<SyncNodeData>[], edges: layoutedEdges });
   },
 
   updateNodeStatus: (nodeId, newStatus) => {
@@ -71,6 +72,7 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
           data: {
             ...node.data,
             status: newStatus,
+            lastSyncedAt: new Date().toISOString()
           }
         };
       }
@@ -80,3 +82,4 @@ export const useGraphStore = create<GraphStore>((set, get) => ({
     set({ nodes: updatedNodes });
   }
 }));
+
