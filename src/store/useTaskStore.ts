@@ -1,55 +1,55 @@
 import { create } from 'zustand';
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
 export type SyncStatus = 'IN_SYNC' | 'NEEDS_UPDATE' | 'BLOCKED' | 'HELP_REQUESTED';
 
-export interface TreeNodeData {
-  id: string;
+export interface Participant {
+  userId: string;
   name: string;
-  role: string;
-  status: SyncStatus;
-  children?: TreeNodeData[];
+  role: string;          // e.g. "Responsible Owner", "Contributor", "Helper", "Reviewer"
+  syncStatus: SyncStatus;
 }
+
+export interface Task {
+  id: string;
+  title: string;
+  participants: Participant[];
+}
+
+// ─── Store Interface ─────────────────────────────────────────────────────────
 
 interface TaskStore {
-  treeData: TreeNodeData | null;
-  setTreeData: (data: TreeNodeData) => void;
+  tasks: Task[];
+
+  /** Replace the entire task list (e.g. after an API fetch). */
+  setTasks: (tasks: Task[]) => void;
+
+  /**
+   * Update a single participant's syncStatus inside a specific task.
+   * No-ops silently if the task or participant is not found.
+   */
+  updateSyncStatus: (taskId: string, userId: string, newStatus: SyncStatus) => void;
 }
 
-// Mock initial state based on requirements
+// ─── Store ───────────────────────────────────────────────────────────────────
+
 export const useTaskStore = create<TaskStore>((set) => ({
-  treeData: {
-    id: 'task-1',
-    name: 'Refactor Core Engine',
-    role: 'Task',
-    status: 'IN_SYNC',
-    children: [
-      {
-        id: 'owner-1',
-        name: 'Sarah Chen',
-        role: 'Responsible Owner',
-        status: 'IN_SYNC',
-        children: [
-          {
-            id: 'contrib-1',
-            name: 'Alex Doe',
-            role: 'Contributor',
-            status: 'NEEDS_UPDATE',
-          },
-          {
-            id: 'contrib-2',
-            name: 'Jamie Smith',
-            role: 'Helper',
-            status: 'HELP_REQUESTED',
-          }
-        ]
-      },
-      {
-        id: 'reviewer-1',
-        name: 'Dr. Review',
-        role: 'Reviewer',
-        status: 'BLOCKED',
-      }
-    ]
-  },
-  setTreeData: (data) => set({ treeData: data }),
+  tasks: [],
+
+  setTasks: (tasks) => set({ tasks }),
+
+  updateSyncStatus: (taskId, userId, newStatus) =>
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              participants: task.participants.map((p) =>
+                p.userId === userId ? { ...p, syncStatus: newStatus } : p
+              ),
+            }
+          : task
+      ),
+    })),
 }));

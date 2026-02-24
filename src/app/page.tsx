@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Activity,
   GitBranch,
@@ -15,13 +15,44 @@ import clsx from "clsx";
 import { SyncGraph } from "@/components/interactive-graph/SyncGraph";
 import { ResponsibilityTree } from "@/components/responsibility-tree/ResponsibilityTree";
 import { SidePanel } from "@/components/task-details/SidePanel";
+import SocketListener from "@/components/SocketListener";
 import { useUIStore } from "@/store/useUIStore";
+import { useTaskStore, Task } from "@/store/useTaskStore";
+
+// ── Seed data (replace with API fetch in production) ─────────────────────────
+const SEED_TASKS: Task[] = [
+  {
+    id: "task-1",
+    title: "Refactor Core Engine",
+    participants: [
+      { userId: "u-sarah", name: "Sarah Chen", role: "Responsible Owner", syncStatus: "IN_SYNC" },
+      { userId: "u-alex", name: "Alex Doe", role: "Contributor", syncStatus: "NEEDS_UPDATE" },
+      { userId: "u-jamie", name: "Jamie Smith", role: "Helper", syncStatus: "HELP_REQUESTED" },
+      { userId: "u-review", name: "Dr. Review", role: "Reviewer", syncStatus: "BLOCKED" },
+    ],
+  },
+  {
+    id: "task-2",
+    title: "Design Auth Flow",
+    participants: [
+      { userId: "u-maria", name: "Maria Garcia", role: "Responsible Owner", syncStatus: "IN_SYNC" },
+      { userId: "u-tom", name: "Tom Nguyen", role: "Contributor", syncStatus: "IN_SYNC" },
+      { userId: "u-lisa", name: "Lisa Park", role: "Reviewer", syncStatus: "NEEDS_UPDATE" },
+    ],
+  },
+];
 
 type ViewMode = "graph" | "tree";
 
 export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("graph");
-  const { isSidePanelOpen, closeSidePanel } = useUIStore();
+  const { isSidePanelOpen } = useUIStore();
+  const { tasks, setTasks } = useTaskStore();
+
+  // Hydrate with seed data on first mount
+  useEffect(() => {
+    if (tasks.length === 0) setTasks(SEED_TASKS);
+  }, [tasks.length, setTasks]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -48,6 +79,9 @@ export default function DashboardPage() {
         </div>
       </aside>
 
+      {/* SocketListener — headless real-time bridge */}
+      <SocketListener />
+
       {/* ── Main Content ─────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -62,7 +96,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
@@ -71,8 +104,6 @@ export default function DashboardPage() {
                 className="w-56 h-9 bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
               />
             </div>
-
-            {/* View Mode Toggle */}
             <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
               <button
                 onClick={() => setViewMode("graph")}
@@ -102,7 +133,6 @@ export default function DashboardPage() {
 
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Graph / Tree */}
           <div
             className={clsx(
               "flex-1 transition-all duration-300",
@@ -110,10 +140,10 @@ export default function DashboardPage() {
             )}
           >
             {viewMode === "graph" ? (
-              <SyncGraph taskId="task-1" />
+              <SyncGraph tasks={tasks} />
             ) : (
               <div className="p-8 h-full overflow-y-auto bg-slate-950">
-                <ResponsibilityTree />
+                <ResponsibilityTree tasks={tasks} />
               </div>
             )}
           </div>
