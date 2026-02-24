@@ -1,17 +1,21 @@
 "use client";
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
   addEdge,
   Connection,
   Edge,
   MarkerType,
 } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
+import CustomNode from './CustomNode';
+import { getLayoutedElements } from './layout';
+import { useGraphStore } from '@/store/useGraphStore';
+import { useSocketGraph } from '@/hooks/useSocketGraph';
 import '@xyflow/react/dist/style.css';
 
 import CustomNode from './CustomNode';
@@ -74,16 +78,33 @@ const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
   initialEdges
 );
 
-export const SyncGraph = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(layoutedEdges);
+export const SyncGraph = ({ taskId }: { taskId: string }) => {
+  // Bind real-time socket listeners
+  useSocketGraph(taskId);
+  
+  // Pull centralized React Flow state manipulated by those sockets
+  const { nodes, edges, setNodes, setEdges, initializeGraph } = useGraphStore();
 
-  // In production, users cannot freely connect nodes manually. 
-  // Responsibilities are strictly defined via the Task DB schema.
-  // This is kept here for completion if you want to support internal logic.
-  const onConnect = useCallback(
-    (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
+  useEffect(() => {
+    // Initial Hydration
+    // In production, you would fetch these from TanStack query here.
+    initializeGraph(initialNodes, initialEdges);
+  }, [initializeGraph]);
+
+  const onNodesChange = useCallback(
+    (changes: any) => {
+      // Typically xyflow handles this internally via useNodesState,
+      // but manually applying changes securely protects structure while allowing selection.
+      setNodes(nodes); 
+    },
+    [nodes, setNodes]
+  );
+
+  const onEdgesChange = useCallback(
+    (changes: any) => {
+      setEdges(edges);
+    },
+    [edges, setEdges]
   );
 
   return (
