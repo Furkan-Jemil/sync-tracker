@@ -102,7 +102,7 @@ export const SyncGraph = ({ taskId }: { taskId: string }) => {
   );
 
   return (
-    <div className="w-full h-screen bg-slate-50">
+    <div className="w-full h-full bg-slate-950">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -116,8 +116,8 @@ export const SyncGraph = ({ taskId }: { taskId: string }) => {
         attributionPosition="bottom-right"
         className="sync-tracker-graph"
       >
-        <Controls />
-        <Background gap={16} size={1} color="#e2e8f0" />
+        <Controls className="!bg-slate-800 !border-slate-700 !text-white [&>button]:!bg-slate-800 [&>button]:!border-slate-700 [&>button]:!text-slate-300 [&>button:hover]:!bg-slate-700" />
+        <Background gap={20} size={1} color="#1e293b" />
       </ReactFlow>
     </div>
   );

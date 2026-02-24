@@ -1,65 +1,176 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState } from "react";
+import {
+  Activity,
+  GitBranch,
+  LayoutGrid,
+  Users,
+  Bell,
+  Search,
+  ChevronRight,
+  Zap,
+} from "lucide-react";
+import clsx from "clsx";
+import { SyncGraph } from "@/components/interactive-graph/SyncGraph";
+import { ResponsibilityTree } from "@/components/responsibility-tree/ResponsibilityTree";
+import { SidePanel } from "@/components/task-details/SidePanel";
+import { useUIStore } from "@/store/useUIStore";
+
+type ViewMode = "graph" | "tree";
+
+export default function DashboardPage() {
+  const [viewMode, setViewMode] = useState<ViewMode>("graph");
+  const { isSidePanelOpen, closeSidePanel } = useUIStore();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex h-screen overflow-hidden">
+      {/* ── Sidebar ──────────────────────────────────────────────── */}
+      <aside className="w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 gap-6 shrink-0">
+        {/* Logo */}
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <Zap className="w-5 h-5 text-white" />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Nav Items */}
+        <nav className="flex flex-col items-center gap-2 mt-4">
+          <SidebarIcon icon={LayoutGrid} label="Dashboard" active />
+          <SidebarIcon icon={Users} label="Team" />
+          <SidebarIcon icon={GitBranch} label="Tasks" />
+          <SidebarIcon icon={Activity} label="Logs" />
+        </nav>
+
+        <div className="mt-auto flex flex-col items-center gap-3">
+          <SidebarIcon icon={Bell} label="Alerts" />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-[10px] font-black flex items-center justify-center text-white shadow-md">
+            SC
+          </div>
         </div>
+      </aside>
+
+      {/* ── Main Content ─────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="h-16 shrink-0 border-b border-slate-800 bg-slate-900/60 backdrop-blur-xl flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-extrabold tracking-tight text-white">
+              SyncTracker
+            </h1>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-widest">
+              Live
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                className="w-56 h-9 bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+              />
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+              <button
+                onClick={() => setViewMode("graph")}
+                className={clsx(
+                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                  viewMode === "graph"
+                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                Graph View
+              </button>
+              <button
+                onClick={() => setViewMode("tree")}
+                className={clsx(
+                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                  viewMode === "tree"
+                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                    : "text-slate-400 hover:text-white"
+                )}
+              >
+                Tree View
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Graph / Tree */}
+          <div
+            className={clsx(
+              "flex-1 transition-all duration-300",
+              isSidePanelOpen ? "mr-0" : ""
+            )}
+          >
+            {viewMode === "graph" ? (
+              <SyncGraph taskId="task-1" />
+            ) : (
+              <div className="p-8 h-full overflow-y-auto bg-slate-950">
+                <ResponsibilityTree />
+              </div>
+            )}
+          </div>
+
+          {/* Side Panel (slides in from right) */}
+          <div
+            className={clsx(
+              "shrink-0 border-l border-slate-800 bg-slate-900 transition-all duration-300 overflow-hidden",
+              isSidePanelOpen ? "w-96" : "w-0"
+            )}
+          >
+            {isSidePanelOpen && <SidePanel />}
+          </div>
+        </div>
+
+        {/* Status Bar */}
+        <footer className="h-8 shrink-0 bg-slate-900 border-t border-slate-800 flex items-center px-4 text-[11px] text-slate-500 gap-4 font-mono">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Connected
+          </span>
+          <span>•</span>
+          <span>5 participants online</span>
+          <span className="ml-auto">SyncTracker v0.1.0</span>
+        </footer>
       </main>
     </div>
+  );
+}
+
+// ─── Sidebar Icon Component ──────────────────────────────────────────────────
+
+function SidebarIcon({
+  icon: Icon,
+  label,
+  active = false,
+}: {
+  icon: React.ElementType;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <button
+      title={label}
+      className={clsx(
+        "w-10 h-10 rounded-xl flex items-center justify-center transition-all group relative",
+        active
+          ? "bg-indigo-500/20 text-indigo-400"
+          : "text-slate-500 hover:text-white hover:bg-slate-800"
+      )}
+    >
+      <Icon className="w-5 h-5" />
+      {/* Tooltip */}
+      <span className="absolute left-14 px-2 py-1 rounded-md bg-slate-800 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-slate-700 shadow-lg">
+        {label}
+        <ChevronRight className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-700" />
+      </span>
+    </button>
   );
 }
