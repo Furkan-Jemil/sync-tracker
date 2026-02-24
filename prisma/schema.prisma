@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// USER MODEL
+// -----------------------------------------------------------------------------
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  passwordHash   String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Task Relationships
+  assignedTasks  Task[]    @relation("TaskAssigner")
+  ownedTasks     Task[]    @relation("TaskOwner")
+  participations TaskParticipant[]
+
+  // Action Tracking
+  syncLogs       SyncLog[]
+  timeLogs       TimeLog[]
+  
+  // Transfers
+  transfersFrom  ResponsibilityTransfer[] @relation("TransferFromUser")
+  transfersTo    ResponsibilityTransfer[] @relation("TransferToUser")
+}
+
+// -----------------------------------------------------------------------------
+// CORE TASK MODEL
+// -----------------------------------------------------------------------------
+
+model Task {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  assignerId      String
+  assigner        User      @relation("TaskAssigner", fields: [assignerId], references: [id])
+
+  ownerId         String
+  owner           User      @relation("TaskOwner", fields: [ownerId], references: [id])
+  // Required: Responsibility must be explicitly accepted. Null means pending acceptance.
+  ownerAcceptedAt DateTime? 
+
+  participants    TaskParticipant[]
+  syncLogs        SyncLog[]
+  timeLogs        TimeLog[]
+  milestones      Milestone[]
+  transfers       ResponsibilityTransfer[]
+
+  @@index([assignerId])
+  @@index([ownerId])
+}
+
+// -----------------------------------------------------------------------------
+// CAPTURING PARTICIPANTS & SYNC STATES
+// -----------------------------------------------------------------------------
+
+enum ParticipantRole {
+  CONTRIBUTOR
+  HELPER
+  REVIEWER
+  OBSERVER
+}
+
+enum SyncStatus {
+  IN_SYNC
+  NEEDS_UPDATE
+  BLOCKED
+  HELP_REQUESTED
+}
+
+model TaskParticipant {
+  id              String          @id @default(cuid())
+  taskId          String
+  userId          String
+  role            ParticipantRole
+  
+  // Participant's live sync state
+  syncStatus      SyncStatus      @default(IN_SYNC)
+  
+  joinedAt        DateTime        @default(now())
+  lastSyncedAt    DateTime        @default(now())
+
+  task            Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId]) // A user has exactly one role/state per task natively
+  @@index([taskId])
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// IMMUTABLE SYNC INTELLIGENCE LOG
+// -----------------------------------------------------------------------------
+
+enum LogType {
+  TASK_CREATED
+  OWNERSHIP_ACCEPTED
+  PARTICIPANT_JOINED
+  SYNC_ACKNOWLEDGED
+  STATUS_UPDATE
+  PROGRESS_UPDATE
+  HELP_REQUEST
+  GENERAL_NOTE
+  RESPONSIBILITY_TRANSFER
+}
+
+model SyncLog {
+  id              String      @id @default(cuid())
+  taskId          String
+  userId          String
+  logType         LogType
+  
+  // Captures what the user wrote (progress, blocker details, note)
+  content         String?     
+  
+  // State transitions
+  oldStatus       SyncStatus? 
+  newStatus       SyncStatus? 
+  
+  createdAt       DateTime    @default(now())
+
+  task            Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// TIME & MILESTONES
+// -----------------------------------------------------------------------------
+
+model TimeLog {
+  id              String      @id @default(cuid())
+  taskId          String
+  userId          String
+  durationMinutes Int
+  description     String?     // Optional description of what time was spent on
+  loggedAt        DateTime    @default(now())
+
+  task            Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+model Milestone {
+  id              String      @id @default(cuid())
+  taskId          String
+  title           String
+  order           Int         @default(0)   // For ordered subtasks
+  
+  isCompleted     Boolean     @default(false)
+  completedAt     DateTime?
+  completedById   String?     // Not a strict relation to allow user deletion later without cascading milestone data
+
+  task            Task        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([order])
+}
+
+// -----------------------------------------------------------------------------
+// TRANSFER OF RESPONSIBILITY (EXPLICIT)
+// -----------------------------------------------------------------------------
+
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELED
+}
+
+// Tracks the lifecycle: "No silent transfers allowed. Old owner must confirm, new owner accept."
+model ResponsibilityTransfer {
+  id              String         @id @default(cuid())
+  taskId          String
+  fromUserId      String
+  toUserId        String
+  status          TransferStatus @default(PENDING)
+  
+  createdAt       DateTime       @default(now())
+  resolvedAt      DateTime?      // Set when accepted, rejected, or canceled
+
+  task            Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fromUser        User           @relation("TransferFromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser          User           @relation("TransferToUser", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([status])
+}
