@@ -4,6 +4,9 @@ import next from "next";
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { Redis } from "ioredis";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -36,6 +39,27 @@ app.prepare().then(() => {
     // Only apply adapter if we're not in a mock state or if we want to force it
     // For single-process local dev, we can actually skip it if Redis is missing
     adapter: createAdapter(pubClient, subClient)
+  });
+
+  io.use((socket, next) => {
+    try {
+      const cookieHeader = socket.request.headers.cookie || "";
+      const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
+      let token = match ? match[1] : null;
+
+      if (!token) {
+        token = socket.handshake.auth?.token;
+      }
+
+      if (!token) {
+        return next(new Error("Authentication error: No token provided"));
+      }
+
+      jwt.verify(token, JWT_SECRET);
+      next();
+    } catch (err) {
+      return next(new Error("Authentication error: Invalid token"));
+    }
   });
 
   io.on("connection", (socket) => {
