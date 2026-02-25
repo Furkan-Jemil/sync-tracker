@@ -4,10 +4,10 @@ import { socketEmitter } from "@/lib/socket-emitter";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const body = await req.json();
     const { action } = body as { action: "INITIATE" | "ACCEPT" | "REJECT" };
 
@@ -48,7 +48,10 @@ export async function POST(
         // Update transfer status
         const resolved = await tx.responsibilityTransfer.update({
           where: { id: transferId },
-          data: { status: action, resolvedAt: new Date() }
+          data: { 
+            status: action === "ACCEPT" ? "ACCEPTED" : "REJECTED", 
+            resolvedAt: new Date() 
+          }
         });
 
         if (action === "ACCEPT") {

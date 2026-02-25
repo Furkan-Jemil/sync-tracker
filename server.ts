@@ -19,6 +19,10 @@ const handle = app.getRequestHandler();
 import { redis as pubClient } from "./src/lib/redis";
 const subClient = pubClient.duplicate();
 
+subClient.on("error", (err) => {
+  console.warn(`[Redis Sub] Connection warning: ${err.message}`);
+});
+
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {
     try {
@@ -31,15 +35,13 @@ app.prepare().then(() => {
     }
   });
 
-  const io = new Server(httpServer, {
-    cors: {
-      origin: "*",
-      methods: ["GET", "POST"],
-    },
-    // Only apply adapter if we're not in a mock state or if we want to force it
-    // For single-process local dev, we can actually skip it if Redis is missing
-    adapter: createAdapter(pubClient, subClient)
   });
+
+  // Only apply adapter if Redis is actually behaving
+  // In local dev without Redis, we fallback to the default in-memory adapter
+  if (process.env.REDIS_URL) {
+    io.adapter(createAdapter(pubClient, subClient));
+  }
 
   io.use((socket, next) => {
     try {
@@ -94,4 +96,35 @@ app.prepare().then(() => {
       console.log(`> Ready on http://${hostname}:${port}`);
       console.log(`> Redis singleton initialized. Event communication active.`);
     });
+
+  // ─── Graceful Shutdown ──────────────────────────────────────────────────────
+  const shutdown = async (signal: string) => {
+    console.log(`\n> Received ${signal}. Shutting down gracefully...`);
+    
+    // Stop accepting new connections
+    httpServer.close(() => {
+      console.log("> HTTP server closed.");
+    });
+
+    // Close Socket.IO
+    io.close(() => {
+      console.log("> Socket.IO server closed.");
+    });
+
+    // Close Redis connections
+    try {
+      await pubClient.quit();
+      console.log("> Redis pub client disconnected.");
+      await subClient.quit();
+      console.log("> Redis sub client disconnected.");
+    } catch (err) {
+      console.error("> Error during Redis disconnect:", err);
+    }
+
+    console.log("> Shutdown complete.");
+    process.exit(0);
+  };
+
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 });

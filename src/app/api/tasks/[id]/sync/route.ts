@@ -5,10 +5,10 @@ import { SyncStatus } from "@prisma/client";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const body = await req.json();
     const { userId, status, note } = body as {
       userId: string;

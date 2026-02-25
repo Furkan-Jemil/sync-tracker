@@ -6,7 +6,7 @@ import { socketEmitter } from "@/lib/socket-emitter";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> | { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
     const user = getUserFromRequest(req);
@@ -14,8 +14,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { taskId } = resolvedParams;
+    const { taskId } = await params;
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {

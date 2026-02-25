@@ -6,7 +6,7 @@ import { socketEmitter } from "@/lib/socket-emitter";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> } | { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
     const user = getUserFromRequest(req);
@@ -14,8 +14,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { taskId } = resolvedParams;
+    const { taskId } = await params;
 
     const task = await prisma.task.findUnique({
       where: { id: taskId },
@@ -57,7 +56,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> } | { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
     const user = getUserFromRequest(req);
@@ -65,8 +64,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const resolvedParams = await Promise.resolve(params);
-    const { taskId } = resolvedParams;
+    const { taskId } = await params;
 
     // Check ownership or assignment to allow patch
     const task = await prisma.task.findUnique({ where: { id: taskId } });
