@@ -10,49 +10,34 @@ import {
   Search,
   ChevronRight,
   Zap,
+  Loader2,
+  Plus,
 } from "lucide-react";
 import clsx from "clsx";
 import { SyncGraph } from "@/components/interactive-graph/SyncGraph";
 import { ResponsibilityTree } from "@/components/responsibility-tree/ResponsibilityTree";
 import { SidePanel } from "@/components/task-details/SidePanel";
+import { CreateTaskModal } from "@/components/task-details/CreateTaskModal";
 import SocketListener from "@/components/SocketListener";
 import { useUIStore } from "@/store/useUIStore";
-import { useTaskStore, Task } from "@/store/useTaskStore";
+import { useTaskStore } from "@/store/useTaskStore";
+import { useTasks } from "@/hooks/useTasks";
+import { useAuthStore } from "@/store/useAuthStore";
+import { LogOut } from "lucide-react";
 
-// ── Seed data (replace with API fetch in production) ─────────────────────────
-const SEED_TASKS: Task[] = [
-  {
-    id: "task-1",
-    title: "Refactor Core Engine",
-    participants: [
-      { userId: "u-sarah", name: "Sarah Chen", role: "Responsible Owner", syncStatus: "IN_SYNC" },
-      { userId: "u-alex", name: "Alex Doe", role: "Contributor", syncStatus: "NEEDS_UPDATE" },
-      { userId: "u-jamie", name: "Jamie Smith", role: "Helper", syncStatus: "HELP_REQUESTED" },
-      { userId: "u-review", name: "Dr. Review", role: "Reviewer", syncStatus: "BLOCKED" },
-    ],
-  },
-  {
-    id: "task-2",
-    title: "Design Auth Flow",
-    participants: [
-      { userId: "u-maria", name: "Maria Garcia", role: "Responsible Owner", syncStatus: "IN_SYNC" },
-      { userId: "u-tom", name: "Tom Nguyen", role: "Contributor", syncStatus: "IN_SYNC" },
-      { userId: "u-lisa", name: "Lisa Park", role: "Reviewer", syncStatus: "NEEDS_UPDATE" },
-    ],
-  },
-];
+// ── Seed data removed for production ─────────────────────────
+
 
 type ViewMode = "graph" | "tree";
 
 export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("graph");
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const { isSidePanelOpen } = useUIStore();
-  const { tasks, setTasks } = useTaskStore();
-
-  // Hydrate with seed data on first mount
-  useEffect(() => {
-    if (tasks.length === 0) setTasks(SEED_TASKS);
-  }, [tasks.length, setTasks]);
+  const { tasks } = useTaskStore();
+  const { user, logout } = useAuthStore();
+  
+  const { isLoading, error, refetch } = useTasks();
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -73,8 +58,15 @@ export default function DashboardPage() {
 
         <div className="mt-auto flex flex-col items-center gap-3">
           <SidebarIcon icon={Bell} label="Alerts" />
+          <button 
+            onClick={() => logout()}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all group relative"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-[10px] font-black flex items-center justify-center text-white shadow-md">
-            SC
+            {user?.name?.slice(0, 2).toUpperCase() || "UN"}
           </div>
         </div>
       </aside>
@@ -128,6 +120,13 @@ export default function DashboardPage() {
                 Tree View
               </button>
             </div>
+            <button
+              onClick={() => setIsTaskModalOpen(true)}
+              className="h-9 px-4 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              New Task
+            </button>
           </div>
         </header>
 
@@ -135,10 +134,32 @@ export default function DashboardPage() {
         <div className="flex-1 flex overflow-hidden">
           <div
             className={clsx(
-              "flex-1 transition-all duration-300",
+              "flex-1 transition-all duration-300 relative",
               isSidePanelOpen ? "mr-0" : ""
             )}
           >
+            {isLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-950/50 backdrop-blur-sm z-10">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-950 z-10">
+                <div className="text-center p-8 bg-slate-900 border border-slate-800 rounded-2xl max-w-sm">
+                  <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+                    <Activity className="text-red-500 w-6 h-6" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">Failed to load tasks</h3>
+                  <p className="text-slate-400 text-sm mb-6">{(error as Error).message || "Something went wrong"}</p>
+                  <button 
+                    onClick={() => refetch()}
+                    className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-all"
+                  >
+                    Retry Connection
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             {viewMode === "graph" ? (
               <SyncGraph tasks={tasks} />
             ) : (
@@ -170,6 +191,11 @@ export default function DashboardPage() {
           <span className="ml-auto">SyncTracker v0.1.0</span>
         </footer>
       </main>
+
+      <CreateTaskModal 
+        isOpen={isTaskModalOpen} 
+        onClose={() => setIsTaskModalOpen(false)} 
+      />
     </div>
   );
 }
