@@ -25,6 +25,14 @@ export async function GET(req: NextRequest) {
         participants: {
           include: { user: { select: { id: true, name: true, email: true } } },
         },
+        syncLogs: {
+          include: { user: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        },
+        milestones: {
+          orderBy: { order: "asc" },
+        },
       },
       orderBy: { updatedAt: "desc" },
     });
