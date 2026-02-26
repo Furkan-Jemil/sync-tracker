@@ -19,10 +19,6 @@ const handle = app.getRequestHandler();
 import { redis as pubClient } from "./src/lib/redis";
 const subClient = pubClient.duplicate();
 
-subClient.on("error", (err) => {
-  console.warn(`[Redis Sub] Connection warning: ${err.message}`);
-});
-
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {
     try {
@@ -35,13 +31,15 @@ app.prepare().then(() => {
     }
   });
 
+  const io = new Server(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+    },
+    // Only apply adapter if we're not in a mock state or if we want to force it
+    // For single-process local dev, we can actually skip it if Redis is missing
+    adapter: createAdapter(pubClient, subClient)
   });
-
-  // Only apply adapter if Redis is actually behaving
-  // In local dev without Redis, we fallback to the default in-memory adapter
-  if (process.env.REDIS_URL) {
-    io.adapter(createAdapter(pubClient, subClient));
-  }
 
   io.use((socket, next) => {
     try {
