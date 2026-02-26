@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createServer } from "http";
 import { parse } from "url";
 import next from "next";
@@ -17,7 +18,12 @@ const handle = app.getRequestHandler();
 
 // Use our resilient singleton
 import { redis as pubClient } from "./src/lib/redis";
-const subClient = pubClient.duplicate();
+let subClient: any = null;
+try {
+  subClient = pubClient.duplicate();
+} catch (e) {
+  console.warn("> Failed to duplicate Redis client. Sub-client will be null.");
+}
 
 app.prepare().then(() => {
   const httpServer = createServer(async (req, res) => {
@@ -36,9 +42,8 @@ app.prepare().then(() => {
       origin: "*",
       methods: ["GET", "POST"],
     },
-    // Only apply adapter if we're not in a mock state or if we want to force it
-    // For single-process local dev, we can actually skip it if Redis is missing
-    adapter: createAdapter(pubClient, subClient)
+    // Only apply adapter if Redis is actually present
+    adapter: (pubClient && subClient) ? createAdapter(pubClient, subClient) : undefined
   });
 
   io.use((socket, next) => {
