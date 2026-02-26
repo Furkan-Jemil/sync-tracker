@@ -14,7 +14,9 @@ export interface Participant {
 export interface Task {
   id: string;
   title: string;
+  description?: string;
   participants: Participant[];
+  milestones?: any[];
 }
 
 // ─── Store Interface ─────────────────────────────────────────────────────────
