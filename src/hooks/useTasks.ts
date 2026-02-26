@@ -17,13 +17,13 @@ export function useTasks() {
       return data.tasks.map((t: any) => ({
         id: t.id,
         title: t.title,
+        description: t.description,
         participants: [
-          // Owner is a participant too
           {
             userId: t.ownerId,
             name: t.owner.name,
             role: "Responsible Owner",
-            syncStatus: t.ownerAcceptedAt ? "IN_SYNC" : "NEEDS_UPDATE" // Simplified logic for owner
+            syncStatus: t.ownerAcceptedAt ? "IN_SYNC" : "NEEDS_UPDATE"
           },
           ...t.participants.map((p: any) => ({
             userId: p.userId,
@@ -31,7 +31,12 @@ export function useTasks() {
             role: p.role,
             syncStatus: p.syncStatus
           }))
-        ]
+        ],
+        milestones: t.milestones || [],
+        syncLogs: t.syncLogs?.map((l: any) => ({
+          ...l,
+          user: l.user // Include user info for the logs
+        })) || []
       })) as Task[];
     },
   });

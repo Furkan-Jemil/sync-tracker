@@ -45,3 +45,16 @@ export const logTimeSchema = z.object({
   durationMinutes: z.number().int().positive("Duration must be a positive integer"),
   description: z.string().optional(),
 });
+// --- Milestone Payloads ---
+export const createMilestoneSchema = z.object({
+  title: z.string().min(1).max(100),
+  description: z.string().optional(),
+  order: z.number().int().default(0),
+});
+
+export const updateMilestoneSchema = z.object({
+  title: z.string().min(1).max(100).optional(),
+  description: z.string().optional(),
+  completed: z.boolean().optional(),
+  order: z.number().int().optional(),
+});
