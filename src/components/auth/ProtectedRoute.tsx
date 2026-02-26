@@ -15,7 +15,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [checkSession]);
 
   useEffect(() => {
-    if (!isInitializing && !isAuthenticated && !pathname.startsWith("/login")) {
+    const isPublicPath = pathname.startsWith("/login") || pathname.startsWith("/register");
+    if (!isInitializing && !isAuthenticated && !isPublicPath) {
       router.push("/login");
     }
   }, [isAuthenticated, isInitializing, pathname, router]);
@@ -33,8 +34,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // Only render children if authenticated or if we are on the login page (handled earlier in layout if needed)
-  if (!isAuthenticated && !pathname.startsWith("/login")) {
+  // Only render children if authenticated or if on a public page
+  const isPublicPath = pathname.startsWith("/login") || pathname.startsWith("/register");
+  if (!isAuthenticated && !isPublicPath) {
     return null; // Don't flash protected content before redirect
   }
 
