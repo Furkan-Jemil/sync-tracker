@@ -18,8 +18,11 @@ import { SyncGraph } from "@/components/interactive-graph/SyncGraph";
 import { ResponsibilityTree } from "@/components/responsibility-tree/ResponsibilityTree";
 import { SidePanel } from "@/components/task-details/SidePanel";
 import { CreateTaskModal } from "@/components/task-details/CreateTaskModal";
+import { TeamView } from "@/components/dashboard/TeamView";
+import { TasksView } from "@/components/dashboard/TasksView";
+import { LogsView } from "@/components/dashboard/LogsView";
 import SocketListener from "@/components/SocketListener";
-import { useUIStore } from "@/store/useUIStore";
+import { useUIStore, DashboardTab } from "@/store/useUIStore";
 import { useTaskStore } from "@/store/useTaskStore";
 import { useTasks } from "@/hooks/useTasks";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -33,27 +36,69 @@ type ViewMode = "graph" | "tree";
 export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("graph");
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const { isSidePanelOpen } = useUIStore();
+  const { isSidePanelOpen, activeTab, setTab } = useUIStore();
   const { tasks } = useTaskStore();
   const { user, logout } = useAuthStore();
   
   const { isLoading, error, refetch } = useTasks();
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "team":
+        return <TeamView />;
+      case "tasks":
+        return <TasksView tasks={tasks} />;
+      case "logs":
+        return <LogsView />;
+      default: // "dashboard"
+        return viewMode === "graph" ? (
+          <SyncGraph tasks={tasks} />
+        ) : (
+          <div className="p-8 h-full overflow-y-auto bg-slate-950">
+            <ResponsibilityTree tasks={tasks} />
+          </div>
+        );
+    }
+  };
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* ── Sidebar ──────────────────────────────────────────────── */}
       <aside className="w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 gap-6 shrink-0">
         {/* Logo */}
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <div 
+          onClick={() => setTab("dashboard")}
+          className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 cursor-pointer hover:scale-110 transition-transform"
+        >
           <Zap className="w-5 h-5 text-white" />
         </div>
 
         {/* Nav Items */}
         <nav className="flex flex-col items-center gap-2 mt-4">
-          <SidebarIcon icon={LayoutGrid} label="Dashboard" active />
-          <SidebarIcon icon={Users} label="Team" />
-          <SidebarIcon icon={GitBranch} label="Tasks" />
-          <SidebarIcon icon={Activity} label="Logs" />
+          <SidebarIcon 
+            icon={LayoutGrid} 
+            label="Dashboard" 
+            active={activeTab === "dashboard"} 
+            onClick={() => setTab("dashboard")}
+          />
+          <SidebarIcon 
+            icon={Users} 
+            label="Team" 
+            active={activeTab === "team"} 
+            onClick={() => setTab("team")}
+          />
+          <SidebarIcon 
+            icon={GitBranch} 
+            label="Tasks" 
+            active={activeTab === "tasks"} 
+            onClick={() => setTab("tasks")}
+          />
+          <SidebarIcon 
+            icon={Activity} 
+            label="Logs" 
+            active={activeTab === "logs"} 
+            onClick={() => setTab("logs")}
+          />
         </nav>
 
         <div className="mt-auto flex flex-col items-center gap-3">
@@ -79,47 +124,42 @@ export default function DashboardPage() {
         {/* Header */}
         <header className="h-16 shrink-0 border-b border-slate-800 bg-slate-900/60 backdrop-blur-xl flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <h1 className="text-lg font-extrabold tracking-tight text-white">
-              SyncTracker
+            <h1 className="text-lg font-extrabold tracking-tight text-white uppercase italic">
+              {activeTab}
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-widest">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 uppercase tracking-widest animate-pulse">
               Live
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search tasks..."
-                className="w-56 h-9 bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-              />
-            </div>
-            <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
-              <button
-                onClick={() => setViewMode("graph")}
-                className={clsx(
-                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                  viewMode === "graph"
-                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                Graph View
-              </button>
-              <button
-                onClick={() => setViewMode("tree")}
-                className={clsx(
-                  "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
-                  viewMode === "tree"
-                    ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
-                    : "text-slate-400 hover:text-white"
-                )}
-              >
-                Tree View
-              </button>
-            </div>
+            {activeTab === "dashboard" && (
+              <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                <button
+                  onClick={() => setViewMode("graph")}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                    viewMode === "graph"
+                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  Graph View
+                </button>
+                <button
+                  onClick={() => setViewMode("tree")}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
+                    viewMode === "tree"
+                      ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/30"
+                      : "text-slate-400 hover:text-white"
+                  )}
+                >
+                  Tree View
+                </button>
+              </div>
+            )}
+            
             <button
               onClick={() => setIsTaskModalOpen(true)}
               className="h-9 px-4 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
@@ -131,7 +171,7 @@ export default function DashboardPage() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
           <div
             className={clsx(
               "flex-1 transition-all duration-300 relative",
@@ -148,25 +188,19 @@ export default function DashboardPage() {
                   <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
                     <Activity className="text-red-500 w-6 h-6" />
                   </div>
-                  <h3 className="text-lg font-bold text-white mb-2">Failed to load tasks</h3>
-                  <p className="text-slate-400 text-sm mb-6">{(error as Error).message || "Something went wrong"}</p>
+                  <h3 className="text-lg font-bold text-white mb-2">Sync Interrupted</h3>
+                  <p className="text-slate-400 text-sm mb-6">{(error as Error).message || "Verification failed"}</p>
                   <button 
                     onClick={() => refetch()}
                     className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-all"
                   >
-                    Retry Connection
+                    Retry Link
                   </button>
                 </div>
               </div>
             ) : null}
 
-            {viewMode === "graph" ? (
-              <SyncGraph tasks={tasks} />
-            ) : (
-              <div className="p-8 h-full overflow-y-auto bg-slate-950">
-                <ResponsibilityTree tasks={tasks} />
-              </div>
-            )}
+            {renderContent()}
           </div>
 
           {/* Side Panel (slides in from right) */}
@@ -187,8 +221,8 @@ export default function DashboardPage() {
             Connected
           </span>
           <span>•</span>
-          <span>5 participants online</span>
-          <span className="ml-auto">SyncTracker v0.1.0</span>
+          <span>Neural Engine Active</span>
+          <span className="ml-auto tracking-[0.2em] font-black text-indigo-500/50 uppercase">SyncTracker Terminal</span>
         </footer>
       </main>
 
@@ -206,14 +240,17 @@ function SidebarIcon({
   icon: Icon,
   label,
   active = false,
+  onClick,
 }: {
   icon: React.ElementType;
   label: string;
   active?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <button
       title={label}
+      onClick={onClick}
       className={clsx(
         "w-10 h-10 rounded-xl flex items-center justify-center transition-all group relative",
         active
@@ -223,10 +260,11 @@ function SidebarIcon({
     >
       <Icon className="w-5 h-5" />
       {/* Tooltip */}
-      <span className="absolute left-14 px-2 py-1 rounded-md bg-slate-800 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-slate-700 shadow-lg">
+      <span className="absolute left-14 px-2 py-1 rounded-md bg-slate-800 text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap border border-slate-700 shadow-lg z-50">
         {label}
         <ChevronRight className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-700" />
       </span>
     </button>
   );
 }
+```

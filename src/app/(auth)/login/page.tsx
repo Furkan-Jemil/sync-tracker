@@ -54,8 +54,12 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-4">
             <Zap className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Sign in to SyncTracker</h1>
-          <p className="text-sm text-slate-400 mt-2">Enter your credentials to continue</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Sign in to SyncTracker
+          </h1>
+          <p className="text-sm text-slate-400 mt-2">
+            Enter your credentials to continue
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +70,9 @@ export default function LoginPage() {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Email</label>
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Email
+            </label>
             <input
               type="email"
               value={email}
@@ -78,7 +84,9 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Password</label>
+            <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Password
+            </label>
             <input
               type="password"
               value={password}
@@ -92,24 +100,42 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
+            className="w-full h-11 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 mt-6 disabled:opacity-70 disabled:cursor-not-allowed">
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              "Sign In"
+            )}
           </button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-slate-800 text-center">
           <p className="text-sm text-slate-500 font-medium">
             Don't have an account?{" "}
-            <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+            <Link
+              href="/register"
+              className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
               Sign Up
             </Link>
           </p>
         </div>
+
+        <div className="mt-4">
+          <Link href="/register" className="w-full block">
+            <button
+              type="button"
+              className="w-full h-11 bg-transparent border border-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2 mt-3">
+              Create Account
+            </button>
+          </Link>
+        </div>
       </div>
-      
+
       <div className="mt-8 text-center text-xs text-slate-500 max-w-sm">
-        <p>For development testing, use seeded accounts if available via prisma studio.</p>
+        <p>
+          For development testing, use seeded accounts if available via prisma
+          studio.
+        </p>
       </div>
     </div>
   );
