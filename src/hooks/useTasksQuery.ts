@@ -22,7 +22,7 @@ interface UpdateSyncStatusInput {
 }
 
 async function postSyncStatus(input: UpdateSyncStatusInput) {
-  const res = await fetch(`/api/tasks/${input.taskId}/sync-status`, {
+  const res = await fetch(`/api/tasks/${input.taskId}/sync`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

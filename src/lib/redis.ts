@@ -15,20 +15,28 @@ const redisOptions = {
 };
 
 const createRedisClient = () => {
-  const url = process.env.REDIS_URL || "redis://localhost:6379";
+  const url = process.env.REDIS_URL;
   
-  if (process.env.NODE_ENV === "test") {
+  if (process.env.NODE_ENV === "test" || !url) {
+    if (!url && process.env.NODE_ENV !== "test") {
+      console.warn("[Redis] No REDIS_URL found. Using in-memory mock.");
+    }
     return new RedisMock();
   }
 
-  const client = new Redis(url, redisOptions);
+  try {
+    const client = new Redis(url, redisOptions);
 
-  // Handle errors immediately so the process doesn't crash on unhandled events
-  client.on("error", (err) => {
-    console.warn(`[Redis] Connection warning: ${err.message}. Running in-memory mode.`);
-  });
+    client.on("error", (err) => {
+      // Don't log the full stack trace for connection errors to avoid noise
+      console.warn(`[Redis] Connection warning: ${err.message}`);
+    });
 
-  return client;
+    return client;
+  } catch (err) {
+    console.error("[Redis] Failed to initialize client, falling back to mock:", err);
+    return new RedisMock();
+  }
 };
 
 export const redis = globalForRedis.redis || createRedisClient();
