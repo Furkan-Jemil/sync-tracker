@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -96,9 +97,17 @@ export default function LoginPage() {
             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
           </button>
         </form>
+
+        <div className="mt-8 pt-6 border-t border-slate-800 text-center">
+          <p className="text-sm text-slate-500 font-medium">
+            Don't have an account?{" "}
+            <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors">
+              Sign Up
+            </Link>
+          </p>
+        </div>
       </div>
       
-      {/* Dev helper hints based on seed data structure expectations potentially */}
       <div className="mt-8 text-center text-xs text-slate-500 max-w-sm">
         <p>For development testing, use seeded accounts if available via prisma studio.</p>
       </div>
