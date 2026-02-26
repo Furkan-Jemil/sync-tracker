@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import clsx from 'clsx';
 import { User, AlertCircle, CheckCircle2, HelpCircle, Clock, Calendar } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
@@ -17,6 +17,8 @@ export type SyncNodeData = {
   summary?: string;
 };
 
+export type SyncNode = Node<SyncNodeData, 'customTaskNode'>;
+
 const statusColors: Record<SyncStatus, string> = {
   IN_SYNC: 'bg-emerald-500 text-white border-emerald-600',
   NEEDS_UPDATE: 'bg-amber-400 text-amber-950 border-amber-500',
@@ -31,7 +33,7 @@ const statusIcons: Record<SyncStatus, React.ElementType> = {
   HELP_REQUESTED: HelpCircle,
 };
 
-const CustomNode = ({ id, data }: NodeProps<SyncNodeData>) => {
+const CustomNode = ({ id, data }: NodeProps<SyncNode>) => {
   const { openSidePanel } = useUIStore();
   const Icon = data.isTaskNode ? User : statusIcons[data.status];
 
