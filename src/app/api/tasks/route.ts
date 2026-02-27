@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { title, description, ownerId } = result.data;
+    const effectiveOwnerId = ownerId ?? user.userId;
 
     const task = await prisma.$transaction(async (tx) => {
       const newTask = await tx.task.create({
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
           title,
           description,
           assignerId: user.userId,
-          ownerId,
+          ownerId: effectiveOwnerId,
         },
         include: {
           assigner: { select: { id: true, name: true } },
@@ -91,8 +92,8 @@ export async function POST(req: NextRequest) {
     socketEmitter.emit("task_created", { task });
     
     // Also emit to the specific user's room to notify them of assignment
-    if (ownerId !== user.userId) {
-      socketEmitter.to(`user:${ownerId}`).emit("task_assigned", { task });
+    if (effectiveOwnerId !== user.userId) {
+      socketEmitter.to(`user:${effectiveOwnerId}`).emit("task_assigned", { task });
     }
 
     return NextResponse.json({ success: true, task }, { status: 201 });
