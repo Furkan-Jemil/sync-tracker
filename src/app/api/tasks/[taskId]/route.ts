@@ -28,12 +28,15 @@ export async function GET(
           include: { user: { select: { id: true, name: true } } },
           orderBy: { createdAt: "desc" },
         },
+        milestones: {
+          orderBy: { order: "asc" },
+        },
         transfers: {
-          include: { 
+          include: {
             fromUser: { select: { id: true, name: true } },
-            toUser: { select: { id: true, name: true } }
-          }
-        }
+            toUser: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 

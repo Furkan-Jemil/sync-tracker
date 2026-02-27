@@ -210,22 +210,31 @@ export const SidePanel = () => {
               </h3>
               
               <div className="space-y-2">
-                {data.milestones?.length === 0 ? (
-                  <p className="text-[10px] text-slate-600 italic">No milestones defined for this node.</p>
+                {(data.milestones ?? []).length === 0 ? (
+                  <p className="text-[10px] text-slate-600 italic">
+                    No milestones defined for this node.
+                  </p>
                 ) : (
-                  data.milestones.map((m: any) => (
-                    <div key={m.id} className="flex items-center gap-3 p-2 bg-slate-900/50 rounded-lg border border-slate-800 group">
-                      <input 
-                        type="checkbox" 
-                        checked={m.completed} 
+                  (data.milestones ?? []).map((m: any) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 p-2 bg-slate-900/50 rounded-lg border border-slate-800 group"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={m.completed}
                         readOnly
                         className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-indigo-500 focus:ring-0 focus:ring-offset-0"
                       />
                       <div className="flex-1">
-                        <p className={clsx(
-                          "text-[11px] font-bold tracking-tight",
-                          m.completed ? "text-slate-500 line-through" : "text-slate-200"
-                        )}>
+                        <p
+                          className={clsx(
+                            "text-[11px] font-bold tracking-tight",
+                            m.completed
+                              ? "text-slate-500 line-through"
+                              : "text-slate-200"
+                          )}
+                        >
                           {m.title}
                         </p>
                       </div>
@@ -236,19 +245,22 @@ export const SidePanel = () => {
 
               {/* Add Milestone Inline */}
               <div className="pt-2 border-t border-slate-800/50">
-                <input 
+                <input
                   placeholder="Add milestone..."
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-[10px] font-mono text-slate-400 focus:ring-1 focus:ring-indigo-500 outline-none"
                   onKeyDown={async (e) => {
-                    if (e.key === 'Enter' && e.currentTarget.value) {
+                    if (e.key === "Enter" && e.currentTarget.value) {
                       const title = e.currentTarget.value;
                       e.currentTarget.value = "";
+                      const currentLength = (data?.milestones ?? []).length;
                       await fetch(`/api/tasks/${taskId}/milestones`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ title, order: data.milestones?.length || 0 })
+                        body: JSON.stringify({ title, order: currentLength }),
                       });
-                      queryClient.invalidateQueries({ queryKey: ['task-details', taskId] });
+                      queryClient.invalidateQueries({
+                        queryKey: ["task-details", taskId],
+                      });
                     }
                   }}
                 />
