@@ -1,9 +1,8 @@
-\"use client\";
+"use client";
 
-import React from \"react\";
-import { DashboardShell } from \"@/components/dashboard/DashboardShell\";
+import React from "react";
+import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export default function DashboardPage() {
-  return <DashboardShell initialTab=\"dashboard\" />;
+  return <DashboardShell initialTab="dashboard" />;
 }
-```
