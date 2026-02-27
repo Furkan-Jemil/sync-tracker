@@ -8,7 +8,9 @@ export const SyncStatusEnum = z.enum(["IN_SYNC", "NEEDS_UPDATE", "BLOCKED", "HEL
 export const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
   description: z.string().optional(),
-  ownerId: z.string().cuid("Invalid owner ID"), // the person who will be responsible
+  // Allow ownerId to be omitted on the wire; the API will default it to the
+  // authenticated user. When provided, validate as a CUID.
+  ownerId: z.string().cuid("Invalid owner ID").optional(),
 });
 
 export const updateTaskSchema = z.object({
