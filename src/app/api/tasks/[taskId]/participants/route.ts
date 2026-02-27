@@ -79,7 +79,7 @@ export async function POST(
     socketEmitter.to(`user:${targetUserId}`).emit("task_assigned", { task }); // alert them
 
     return NextResponse.json({ success: true, participant }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[PARTICIPANTS_POST_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

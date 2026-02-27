@@ -11,21 +11,19 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import clsx from "clsx";
-import { Task, Participant, SyncStatus } from "@/store/useTaskStore";
-import { useUIStore } from "@/store/useUIStore";
+import { Task, SyncStatus } from "@/store/useTaskStore";
 import { socket } from "@/lib/socket";
 import { getLayoutedElements } from "./layout";
 import CustomNode from "./CustomNode";
+import ProfileNode from "./ProfileNode";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const nodeTypes = { customTaskNode: CustomNode };
+const nodeTypes = { customTaskNode: CustomNode, profileNode: ProfileNode };
 
 const EDGE_STYLES: Record<string, Partial<Edge>> = {
   assignment: {
     type: "smoothstep",
-    animated: true,
     style: { stroke: "#6366f1", strokeWidth: 2 },
     markerEnd: { type: MarkerType.ArrowClosed, color: "#6366f1" },
     label: "assigns",
@@ -98,6 +96,7 @@ function buildGraphFromTasks(tasks: Task[]) {
         source: task.id,
         target: ownerId,
         ...EDGE_STYLES.assignment,
+        animated: owner.syncStatus === "IN_SYNC",
       } as Edge);
 
       // ── Contributor/Helper nodes + Responsibility edges (Owner → Contrib) ─
@@ -120,6 +119,7 @@ function buildGraphFromTasks(tasks: Task[]) {
           source: ownerId,
           target: cId,
           ...EDGE_STYLES.responsibility,
+          animated: owner.syncStatus === "IN_SYNC",
         } as Edge);
       });
 
@@ -133,6 +133,7 @@ function buildGraphFromTasks(tasks: Task[]) {
             source: `${task.id}-${c.userId}`,
             target: `${task.id}-${h.userId}`,
             ...EDGE_STYLES.collaboration,
+            animated: c.syncStatus === "IN_SYNC",
           } as Edge);
         });
       });
@@ -157,6 +158,7 @@ function buildGraphFromTasks(tasks: Task[]) {
           source: ownerId,
           target: rId,
           ...EDGE_STYLES.review,
+          animated: owner.syncStatus === "IN_SYNC",
         } as Edge);
       });
     }
@@ -209,6 +211,7 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         nodeTypes={nodeTypes as any}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { prisma } from '@/lib/prisma';
-import { POST as syncRoute } from '@/app/api/tasks/[id]/sync/route';
+import { POST as syncRoute } from '@/app/api/tasks/[taskId]/sync/route';
 import { socketEmitter } from '@/lib/socket-emitter';
 import bcrypt from 'bcrypt';
 

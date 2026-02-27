@@ -1,38 +1,81 @@
-import dagre from 'dagre';
-import { Node, Edge } from '@xyflow/react';
+import { Node, Edge, Position } from '@xyflow/react';
 
 const nodeWidth = 220;
 const nodeHeight = 80;
+const verticalGap = 150;
+const horizontalGap = 200;
 
 export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  // Determine levels via topological sort/BFS
+  const inDegree: Record<string, number> = {};
+  const adjList: Record<string, string[]> = {};
+  const levels: Record<string, number> = {};
 
-  dagreGraph.setGraph({ rankdir: direction });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  nodes.forEach((n) => {
+    inDegree[n.id] = 0;
+    adjList[n.id] = [];
+    levels[n.id] = 0;
   });
 
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+  edges.forEach((e) => {
+    if (!adjList[e.source]) adjList[e.source] = [];
+    adjList[e.source].push(e.target);
+    if (inDegree[e.target] !== undefined) {
+      inDegree[e.target]++;
+    }
   });
 
-  dagre.layout(dagreGraph);
+  let queue = nodes.filter((n) => inDegree[n.id] === 0).map((n) => n.id);
 
+  while (queue.length > 0) {
+    const currentQueue = queue;
+    queue = [];
+    currentQueue.forEach((u) => {
+      const nextNodes = adjList[u] || [];
+      nextNodes.forEach((v) => {
+        if (levels[v] < levels[u] + 1) {
+          levels[v] = levels[u] + 1;
+        }
+        inDegree[v]--;
+        if (inDegree[v] === 0) {
+          queue.push(v);
+        }
+      });
+    });
+  }
+
+  // Group by level
+  const nodesByLevel: Record<number, Node[]> = {};
   nodes.forEach((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    node.targetPosition = direction === 'TB' ? 'top' : 'left' as any;
-    node.sourcePosition = direction === 'TB' ? 'bottom' : 'right' as any;
+    const lvl = levels[node.id] || 0;
+    if (!nodesByLevel[lvl]) nodesByLevel[lvl] = [];
+    nodesByLevel[lvl].push(node);
+  });
 
-    // We are shifting the dagre node position (anchor=center center) to the top left
-    // so it matches the React Flow node anchor point (top left).
-    node.position = {
-      x: nodeWithPosition.x - nodeWidth / 2,
-      y: nodeWithPosition.y - nodeHeight / 2,
-    };
+  // Assign positions
+  nodes.forEach((node) => {
+    const lvl = levels[node.id] || 0;
+    const sameLevelNodes = nodesByLevel[lvl];
+    const index = sameLevelNodes.findIndex((n) => n.id === node.id);
 
-    return node;
+    // Center alignment
+    const totalWidth = (sameLevelNodes.length - 1) * horizontalGap;
+    const startX = -totalWidth / 2;
+
+    node.targetPosition = direction === 'TB' ? Position.Top : Position.Left;
+    node.sourcePosition = direction === 'TB' ? Position.Bottom : Position.Right;
+
+    if (direction === 'TB') {
+      node.position = {
+        x: startX + index * horizontalGap - nodeWidth / 2,
+        y: lvl * verticalGap,
+      };
+    } else {
+      node.position = {
+        x: lvl * verticalGap,
+        y: startX + index * horizontalGap - nodeHeight / 2,
+      };
+    }
   });
 
   return { nodes, edges };
