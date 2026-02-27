@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Users, Search, Mail, Shield, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,6 +15,20 @@ export function TeamView() {
     }
   });
 
+  const [query, setQuery] = useState("");
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    const q = query.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((user: any) => {
+      return (
+        user.name.toLowerCase().includes(q) ||
+        user.email.toLowerCase().includes(q)
+      );
+    });
+  }, [users, query]);
+
   return (
     <div className="p-8 h-full overflow-y-auto bg-slate-950">
       <div className="flex items-center justify-between mb-8">
@@ -28,6 +42,8 @@ export function TeamView() {
           <input
             type="text"
             placeholder="Search members..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="w-64 h-10 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 transition-all"
           />
         </div>
@@ -38,7 +54,7 @@ export function TeamView() {
           Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-48 bg-slate-900/50 border border-slate-800 rounded-2xl animate-pulse" />
           ))
-        ) : users?.map((user) => (
+        ) : filteredUsers.map((user: any) => (
           <div key={user.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:shadow-2xl hover:shadow-indigo-500/5 transition-all group border-t-2 border-t-transparent hover:border-t-indigo-500">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center text-indigo-400 font-bold border border-indigo-500/20 group-hover:scale-110 transition-transform">

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { Layout, Search, Filter } from "lucide-react";
 import { Task } from "@/store/useTaskStore";
 import { useUIStore } from "@/store/useUIStore";
@@ -11,6 +11,20 @@ interface TasksViewProps {
 
 export function TasksView({ tasks }: TasksViewProps) {
   const { openSidePanel } = useUIStore();
+  const [query, setQuery] = useState("");
+
+  const filteredTasks = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return tasks;
+    return tasks.filter((task) => {
+      const inTitle = task.title.toLowerCase().includes(q);
+      const inId = task.id.toLowerCase().includes(q);
+      const inParticipants = task.participants.some((p) =>
+        p.name.toLowerCase().includes(q)
+      );
+      return inTitle || inId || inParticipants;
+    });
+  }, [tasks, query]);
 
   return (
     <div className="p-8 h-full overflow-y-auto bg-slate-950">
@@ -25,7 +39,9 @@ export function TasksView({ tasks }: TasksViewProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="text"
-              placeholder="Filter tasks..."
+              placeholder="Search tasks..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               className="w-64 h-10 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 transition-all"
             />
           </div>
@@ -37,7 +53,7 @@ export function TasksView({ tasks }: TasksViewProps) {
       </div>
 
       <div className="grid gap-4">
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl text-center">
             <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-slate-500 mb-4">
               <Layout size={24} />
@@ -48,7 +64,7 @@ export function TasksView({ tasks }: TasksViewProps) {
             </p>
           </div>
         ) : (
-          tasks.map((task) => (
+          filteredTasks.map((task) => (
             <div 
               key={task.id}
               onClick={() => openSidePanel(task.id)}
