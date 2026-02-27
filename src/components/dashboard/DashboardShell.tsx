@@ -13,7 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import clsx from "clsx";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import { SyncGraph } from "@/components/interactive-graph/SyncGraph";
 import { ResponsibilityTree } from "@/components/responsibility-tree/ResponsibilityTree";
@@ -38,6 +38,8 @@ interface DashboardShellProps {
 
 export function DashboardShell({ initialTab }: DashboardShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>("graph");
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -54,6 +56,24 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
   useEffect(() => {
     setTab(initialTab);
   }, [initialTab, setTab]);
+
+  // Initialize view mode from URL (?view=graph|tree)
+  useEffect(() => {
+    const view = searchParams.get("view");
+    if (view === "graph" || view === "tree") {
+      setViewMode(view);
+    }
+  }, [searchParams]);
+
+  const updateViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+
+    // Keep URL in sync: update ?view=...
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", mode);
+    const query = params.toString();
+    router.push(`${pathname}${query ? `?${query}` : ""}`, { scroll: false });
+  };
 
   // Track socket connection status in real time
   useEffect(() => {
@@ -184,7 +204,7 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
             {activeTab === "dashboard" && (
               <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700">
                 <button
-                  onClick={() => setViewMode("graph")}
+                  onClick={() => updateViewMode("graph")}
                   className={clsx(
                     "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
                     viewMode === "graph"
@@ -195,7 +215,7 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
                   Graph View
                 </button>
                 <button
-                  onClick={() => setViewMode("tree")}
+                  onClick={() => updateViewMode("tree")}
                   className={clsx(
                     "px-3 py-1.5 rounded-md text-xs font-bold transition-all",
                     viewMode === "tree"
