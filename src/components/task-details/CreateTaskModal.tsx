@@ -15,22 +15,17 @@ export const CreateTaskModal = ({ isOpen, onClose }: CreateTaskModalProps) => {
   const { user } = useAuthStore();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [ownerId, setOwnerId] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Auto-populate ownerId when modal opens or user changes
-  useEffect(() => {
-    if (isOpen && user?.id) {
-      setOwnerId(user.id);
-    }
-  }, [isOpen, user?.id]);
+  const isAuthenticated = !!user?.id;
 
   const mutation = useMutation({
-    mutationFn: async (vars: { title: string; description: string; ownerId: string }) => {
+    mutationFn: async (vars: { title: string; description: string }) => {
       setErrorMsg(null);
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // Backend will default ownerId to the authenticated user when omitted.
         body: JSON.stringify(vars),
       });
       const data = await res.json();
@@ -73,7 +68,11 @@ export const CreateTaskModal = ({ isOpen, onClose }: CreateTaskModalProps) => {
           className="p-6 space-y-5"
           onSubmit={(e) => {
             e.preventDefault();
-            mutation.mutate({ title, description, ownerId });
+            if (!isAuthenticated) {
+              setErrorMsg("You must be logged in to deploy a task.");
+              return;
+            }
+            mutation.mutate({ title, description });
           }}
         >
           {errorMsg && (
@@ -108,26 +107,22 @@ export const CreateTaskModal = ({ isOpen, onClose }: CreateTaskModalProps) => {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-              <Users size={12} className="text-indigo-400" /> Responsible Agent ID
-            </label>
-            <div className="relative">
-              <input
-                required
-                value={ownerId}
-                onChange={(e) => setOwnerId(e.target.value)}
-                placeholder="USER_UUID_REQUIRED"
-                className="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-4 text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-[10px]"
-              />
-              {ownerId === user?.id && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">
+          {isAuthenticated && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <Users size={12} className="text-indigo-400" /> Responsible Owner
+              </label>
+              <div className="w-full h-11 bg-slate-950 border border-slate-800 rounded-xl px-4 flex items-center justify-between text-[11px] text-slate-200 font-mono">
+                <span className="truncate">{user?.email}</span>
+                <span className="text-[9px] font-black bg-indigo-500 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">
                   Self
                 </span>
-              )}
+              </div>
+              <p className="text-[10px] text-slate-600 italic mt-1 px-1">
+                Ownership is automatically assigned to your active session.
+              </p>
             </div>
-            <p className="text-[10px] text-slate-600 italic mt-1 px-1">Defaults to your active session identity.</p>
-          </div>
+          )}
 
           <div className="flex gap-3 mt-8">
             <button
