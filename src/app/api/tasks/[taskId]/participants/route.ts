@@ -16,6 +16,15 @@ export async function POST(
 
     const { taskId } = await params;
 
+    const body = await req.json();
+    const result = addParticipantSchema.safeParse(body);
+
+    if (!result.success) {
+      return NextResponse.json({ error: "Invalid payload", details: result.error.format() }, { status: 400 });
+    }
+
+    const { email: targetEmail, role } = result.data;
+
     const task = await prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
@@ -32,20 +41,12 @@ export async function POST(
        return NextResponse.json({ error: "Forbidden: only owner, assigner, or lead contributor can add participants" }, { status: 403 });
     }
 
-    const body = await req.json();
-    const result = addParticipantSchema.safeParse(body);
-
-    if (!result.success) {
-      return NextResponse.json({ error: "Invalid payload", details: result.error.format() }, { status: 400 });
-    }
-
-    const { userId: targetUserId, role } = result.data;
-
     // Ensure user exists
-    const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+    const targetUser = await prisma.user.findUnique({ where: { email: targetEmail } });
     if (!targetUser) {
       return NextResponse.json({ error: "Target user not found" }, { status: 404 });
     }
+    const targetUserId = targetUser.id;
 
     const participant = await prisma.$transaction(async (tx) => {
       // Upsert participant to handle case where they might already exist and just need role change
