@@ -82,6 +82,12 @@ export const SocketListener = () => {
       }
     };
 
+    const onParticipantRemoved = (payload: { taskId: string; userId: string }) => {
+      console.log(`[participant_removed] Task ${payload.taskId} — user ${payload.userId}`);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['task-details', payload.taskId] });
+    };
+
     const onTransferEvent = (payload: any) => {
       console.log("[transfer_event]", payload);
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -96,8 +102,15 @@ export const SocketListener = () => {
     socket.on("task_created", onTaskLifecycle);
     socket.on("task_updated", onTaskUpdated);
     socket.on("participant_joined", onParticipantJoined);
+    socket.on("participant_removed", onParticipantRemoved);
     socket.on("transfer_requested", onTransferEvent);
     socket.on("transfer_resolved", onTransferEvent);
+
+    // Join rooms for all existing tasks if already connected
+    const currentTasks = useTaskStore.getState().tasks;
+    currentTasks.forEach(task => {
+      socket.emit("join_task", { taskId: task.id });
+    });
 
     // Cleanup on unmount
     return () => {
@@ -110,6 +123,16 @@ export const SocketListener = () => {
       socket.off("transfer_resolved", onTransferEvent);
     };
   }, [updateSyncStatus, queryClient]);
+
+  // Join rooms for any NEW tasks that appear in the store
+  const tasks = useTaskStore((s) => s.tasks);
+  useEffect(() => {
+    if (socket.connected) {
+      tasks.forEach(task => {
+        socket.emit("join_task", { taskId: task.id });
+      });
+    }
+  }, [tasks]);
 
   // Renders nothing — this is a pure side-effect component
   return null;

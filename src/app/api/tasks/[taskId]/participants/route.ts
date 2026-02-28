@@ -100,3 +100,57 @@ export async function POST(
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ taskId: string }> }
+) {
+  try {
+    const user = getUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { taskId } = await params;
+    const { searchParams } = new URL(req.url);
+    const targetUserId = searchParams.get("userId");
+
+    if (!targetUserId) {
+      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    }
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    const isOwnerOrAssigner = task.ownerId === user.userId || task.assignerId === user.userId;
+    if (!isOwnerOrAssigner) {
+       return NextResponse.json({ error: "Forbidden: only owner or assigner can remove participants" }, { status: 403 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.taskParticipant.delete({
+        where: {
+          taskId_userId: { taskId, userId: targetUserId }
+        }
+      });
+
+      await tx.syncLog.create({
+        data: {
+          taskId,
+          userId: targetUserId,
+          logType: "PARTICIPANT_REMOVED",
+          content: `Removed from task by ${user.email}`,
+        }
+      });
+    });
+
+    socketEmitter.to(`task:${taskId}`).emit("participant_removed", { taskId, userId: targetUserId });
+
+    return NextResponse.json({ success: true });
+  } catch (error: unknown) {
+    console.error("[PARTICIPANTS_DELETE_ERROR]", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

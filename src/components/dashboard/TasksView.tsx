@@ -73,7 +73,7 @@ export function TasksView({ tasks }: TasksViewProps) {
         ) : (
           filteredTasks.map((task) => {
             const completedMilestones =
-              (task.milestones || []).filter((m: any) => m.completed).length;
+              (task.milestones || []).filter((m: any) => m.isCompleted).length;
             const totalMilestones = (task.milestones || []).length;
             const responsible =
               task.participants.find(

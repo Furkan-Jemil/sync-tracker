@@ -10,6 +10,7 @@ import {
   MarkerType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Task, SyncStatus } from "@/store/useTaskStore";
 import { socket } from "@/lib/socket";
@@ -28,15 +29,18 @@ const EDGE_STYLES: Record<string, Partial<Edge>> = {
     markerEnd: { type: MarkerType.ArrowClosed, color: "#0ea5e9" },
     label: "LINK",
     labelStyle: { fill: "#0ea5e9", fontSize: 8, fontWeight: 900, fontFamily: "monospace" },
+    animated: true,
   },
   responsibility: {
     type: "default",
     style: { stroke: "#10b981", strokeWidth: 2, strokeDasharray: "4 4" },
     markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" },
+    animated: true,
   },
   collaboration: {
     type: "default",
     style: { stroke: "#f59e0b", strokeWidth: 1.5, strokeDasharray: "10 5" },
+    animated: true,
   },
   review: {
     type: "default",
@@ -44,6 +48,7 @@ const EDGE_STYLES: Record<string, Partial<Edge>> = {
     markerEnd: { type: MarkerType.ArrowClosed, color: "#a855f7" },
     label: "AUDIT",
     labelStyle: { fill: "#a855f7", fontSize: 8, fontWeight: 900, fontFamily: "monospace" },
+    animated: true,
   },
 };
 
@@ -97,7 +102,6 @@ function buildGraphFromTasks(tasks: Task[]) {
         source: task.id,
         target: ownerId,
         ...EDGE_STYLES.assignment,
-        animated: owner.syncStatus === "IN_SYNC",
       } as Edge);
 
       // ── Contributor/Helper nodes + Responsibility edges (Owner → Contrib) ─
@@ -121,7 +125,6 @@ function buildGraphFromTasks(tasks: Task[]) {
           source: ownerId,
           target: cId,
           ...EDGE_STYLES.responsibility,
-          animated: owner.syncStatus === "IN_SYNC",
         } as Edge);
       });
 
@@ -135,7 +138,6 @@ function buildGraphFromTasks(tasks: Task[]) {
             source: `${task.id}-${c.userId}`,
             target: `${task.id}-${h.userId}`,
             ...EDGE_STYLES.collaboration,
-            animated: c.syncStatus === "IN_SYNC",
           } as Edge);
         });
       });
@@ -161,7 +163,6 @@ function buildGraphFromTasks(tasks: Task[]) {
           source: ownerId,
           target: rId,
           ...EDGE_STYLES.review,
-          animated: owner.syncStatus === "IN_SYNC",
         } as Edge);
       });
     }
@@ -177,7 +178,19 @@ interface SyncGraphProps {
 }
 
 export const SyncGraph = ({ tasks }: SyncGraphProps) => {
-  const { nodes, edges } = useMemo(() => buildGraphFromTasks(tasks), [tasks]);
+  const { nodes, initialEdges } = useMemo(() => {
+    const { nodes, edges } = buildGraphFromTasks(tasks);
+    return { nodes, initialEdges: edges };
+  }, [tasks]);
+
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+
+  const edges = useMemo(() => {
+    return initialEdges.map((edge) => ({
+      ...edge,
+      animated: edge.id === hoveredEdgeId ? false : (edge.animated ?? true),
+    }));
+  }, [initialEdges, hoveredEdgeId]);
 
   // ── Socket.IO real-time subscriptions ──────────────────────────────────
 
@@ -221,6 +234,7 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
   } | null>(null);
 
   const [addHelperModal, setAddHelperModal] = useState<string | null>(null);
+  const [removeParticipantModal, setRemoveParticipantModal] = useState<{ taskId: string; userId: string; name: string } | null>(null);
   const [assignRoleModal, setAssignRoleModal] = useState<{ taskId: string; userId: string; name: string; currentRole: string } | null>(null);
   const [messageUserModal, setMessageUserModal] = useState<{ taskId: string; targetUserId: string; name: string } | null>(null);
 
@@ -229,14 +243,28 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
       event.preventDefault();
       // Only show context menu for profile nodes
       if (node.type === "profileNode") {
+        const menuWidth = 192; // w-48
+        const menuHeight = 220; // Estimated height with all buttons
+        
+        let top = event.clientY;
+        let left = event.clientX;
+
+        // Boundary detection
+        if (left + menuWidth > window.innerWidth) {
+          left = window.innerWidth - menuWidth - 10;
+        }
+        if (top + menuHeight > window.innerHeight) {
+          top = window.innerHeight - menuHeight - 10;
+        }
+
         setContextMenu({
           nodeId: node.id,
           taskId: node.data.taskId as string,
           userId: node.data.userId as string,
           name: node.data.name as string,
           role: node.data.role as string,
-          top: event.clientY,
-          left: event.clientX,
+          top,
+          left,
         });
       }
     },
@@ -244,6 +272,14 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
   );
 
   const onPaneClick = useCallback(() => setContextMenu(null), []);
+
+  const onEdgeMouseEnter = useCallback((_: React.MouseEvent, edge: Edge) => {
+    setHoveredEdgeId(edge.id);
+  }, []);
+
+  const onEdgeMouseLeave = useCallback(() => {
+    setHoveredEdgeId(null);
+  }, []);
 
   return (
     <div className="w-full h-full bg-slate-950 relative">
@@ -256,6 +292,8 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
         onEdgesChange={onEdgesChange}
         onNodeContextMenu={onNodeContextMenu}
         onPaneClick={onPaneClick}
+        onEdgeMouseEnter={onEdgeMouseEnter}
+        onEdgeMouseLeave={onEdgeMouseLeave}
         elementsSelectable
         nodesConnectable={false}
         nodesDraggable={false}
@@ -315,6 +353,19 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           >
             Message User
           </button>
+          <button 
+            className="w-full text-left px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 transition-colors"
+            onClick={() => {
+              setRemoveParticipantModal({
+                taskId: contextMenu.taskId,
+                userId: contextMenu.userId,
+                name: contextMenu.name,
+              });
+              setContextMenu(null);
+            }}
+          >
+            Remove Participant
+          </button>
         </div>
       )}
 
@@ -326,6 +377,12 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
         <AssignRoleModal
           data={assignRoleModal}
           onClose={() => setAssignRoleModal(null)}
+        />
+      )}
+      {removeParticipantModal && (
+        <RemoveParticipantModal
+          data={removeParticipantModal}
+          onClose={() => setRemoveParticipantModal(null)}
         />
       )}
       {messageUserModal && (
@@ -340,6 +397,7 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
 
 // ── Add Helper Modal Component (Shadcn-style) ──
 function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("HELPER");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -360,6 +418,7 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add helper");
       
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setShowSuccess(true);
       setTimeout(() => {
         onClose();
@@ -433,6 +492,7 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
 }
 
 function AssignRoleModal({ data, onClose }: { data: { taskId: string; userId: string; name: string; currentRole: string }; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const [role, setRole] = useState(data.currentRole);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -449,6 +509,7 @@ function AssignRoleModal({ data, onClose }: { data: { taskId: string; userId: st
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || "Failed to assign role");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -488,6 +549,7 @@ function AssignRoleModal({ data, onClose }: { data: { taskId: string; userId: st
 }
 
 function MessageUserModal({ data, onClose }: { data: { taskId: string; targetUserId: string; name: string }; onClose: () => void }) {
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -504,6 +566,8 @@ function MessageUserModal({ data, onClose }: { data: { taskId: string; targetUse
       });
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || "Failed to dispatch message");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["task-details", data.taskId] });
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -538,6 +602,53 @@ function MessageUserModal({ data, onClose }: { data: { taskId: string; targetUse
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function RemoveParticipantModal({ data, onClose }: { data: { taskId: string; userId: string; name: string }; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${data.taskId}/participants?userId=${data.userId}`, {
+        method: "DELETE",
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Failed to remove participant");
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+          <h2 className="text-sm font-bold text-white tracking-tight uppercase italic">Sever Connection: <span className="text-red-400 font-mono">{data.name}</span></h2>
+          <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        </div>
+        <div className="p-5 space-y-4">
+          {errorMsg && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">{errorMsg}</div>}
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Are you sure you want to decouple <span className="text-white font-bold">{data.name}</span> from this task? This action will terminate their access and visibility for this execution node.
+          </p>
+          <div className="pt-2 flex gap-2">
+            <button type="button" onClick={onClose} className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all">Abort</button>
+            <button onClick={handleDelete} disabled={loading} className="flex-[2] h-10 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-red-500/20 transition-all">
+              {loading ? "Decrypting..." : "Confirm Removal"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
