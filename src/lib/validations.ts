@@ -20,7 +20,7 @@ export const updateTaskSchema = z.object({
 
 // --- Participant Payloads ---
 export const addParticipantSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  identifier: z.string().min(1, "Identifier is required"),
   role: ParticipantRoleEnum,
 });
 
