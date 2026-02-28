@@ -13,6 +13,7 @@ import "@xyflow/react/dist/style.css";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/useAuthStore";
 
+import { toast } from 'sonner';
 import { Task, SyncStatus } from "@/store/useTaskStore";
 import { socket } from "@/lib/socket";
 import { getLayoutedElements } from "./layout";
@@ -201,24 +202,28 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
     if (!socket.connected) socket.connect();
 
     const onSyncUpdated = (payload: { taskId: string; userId: string; status: SyncStatus }) => {
-      // The SocketListener component handles store updates;
-      // since `tasks` is reactive, the graph re-derives automatically.
       console.log("[SyncGraph] sync_updated →", payload);
     };
 
     const onParticipantJoined = (payload: { taskId: string; userId: string }) => {
       console.log("[SyncGraph] participant_joined →", payload);
-      // Store is updated upstream; graph re-renders via new `tasks` prop
+    };
+
+    const onTaskDeleted = (payload: { taskId: string }) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.info("A tactical node has been terminated from the network.");
     };
 
     socket.on("sync_updated", onSyncUpdated);
     socket.on("participant_joined", onParticipantJoined);
+    socket.on("task_deleted", onTaskDeleted);
 
     return () => {
       socket.off("sync_updated", onSyncUpdated);
       socket.off("participant_joined", onParticipantJoined);
+      socket.off("task_deleted", onTaskDeleted);
     };
-  }, []);
+  }, [queryClient]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -301,7 +306,8 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
         nodesConnectable={false}
         nodesDraggable={false}
         fitView
-        minZoom={0.3}
+        fitViewOptions={{ padding: 0.5, includeHiddenNodes: false }}
+        minZoom={0.2}
         maxZoom={1.5}
         attributionPosition="bottom-right"
         className="sync-tracker-graph"
@@ -481,11 +487,13 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
       
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       setShowSuccess(true);
+      toast.success("Participant successfully coupled to tactical node");
       setTimeout(() => {
         onClose();
       }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -621,9 +629,11 @@ function AssignRoleModal({ data, onClose }: { data: { taskId: string; userId: st
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || "Failed to assign role");
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success(`Operational role adjusted for ${data.name}`);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -679,9 +689,11 @@ function MessageUserModal({ data, onClose }: { data: { taskId: string; targetUse
       if (!res.ok) throw new Error(resData.error || "Failed to dispatch message");
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       queryClient.invalidateQueries({ queryKey: ["task-details", data.taskId] });
+      toast.success(`Direct transmission dispatched to ${data.name}`);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -733,9 +745,11 @@ function RemoveParticipantModal({ data, onClose }: { data: { taskId: string; use
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error || "Failed to remove participant");
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success(`Participant ${data.name} decoupled from node`);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }

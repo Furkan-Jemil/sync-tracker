@@ -109,3 +109,48 @@ export async function PATCH(
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ taskId: string }> }
+) {
+  try {
+    const user = getUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { taskId } = await params;
+
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    // Only assigner or owner can delete
+    if (task.ownerId !== user.userId && task.assignerId !== user.userId) {
+      return NextResponse.json({ error: "Forbidden: only owner or assigner can delete task" }, { status: 403 });
+    }
+
+    // Delete task (Prisma will handle cascading if configured, or we do it manually)
+    // In our schema, many relations might need cleanup if not onUpdate/onDelete Cascade
+    await prisma.$transaction([
+      prisma.syncLog.deleteMany({ where: { taskId } }),
+      prisma.taskParticipant.deleteMany({ where: { taskId } }),
+      prisma.responsibilityTransfer.deleteMany({ where: { taskId } }),
+      prisma.milestone.deleteMany({ where: { taskId } }),
+      prisma.task.delete({ where: { id: taskId } }),
+    ]);
+
+    // Fire socket event
+    try {
+      socketEmitter.emit("task_deleted", { taskId });
+    } catch (socketError) {
+      console.warn("[SOCKET_EMIT_WARNING] Failed to emit task_deleted event:", socketError);
+    }
+
+    return NextResponse.json({ success: true, message: "Task permanently terminated" });
+  } catch (error: any) {
+    console.error("[TASK_DELETE_ERROR]", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

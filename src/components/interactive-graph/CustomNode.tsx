@@ -63,36 +63,36 @@ const CustomNode = ({ id, data }: NodeProps<SyncNode>) => {
 
       <div 
         className={clsx(
-          "px-5 py-4 shadow-2xl rounded-2xl border-2 min-w-[220px] cursor-pointer transition-all hover:scale-105 active:scale-95 group/node",
+          "px-3 py-3 md:px-5 md:py-4 shadow-2xl rounded-xl md:rounded-2xl border-2 min-w-[160px] md:min-w-[220px] cursor-pointer transition-all hover:scale-105 active:scale-95 group/node",
           data.isTaskNode ? "bg-slate-950 text-cyan-400 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.15)]" : statusColors[data.status],
           data.status === 'BLOCKED' && "animate-pulse",
           data.isTaskNode && "text-center ring-4 ring-cyan-500/10 ring-offset-4 ring-offset-slate-950"
         )}
         onClick={() => openSidePanel(id)}
       >
-        <Handle type="target" position={Position.Top} className="w-2 h-2 bg-slate-400 border-none" />
+        <Handle type="target" position={Position.Top} className="w-2 h-2 bg-slate-400 border-none opacity-0" />
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className={clsx(
-            "p-1.5 rounded-lg",
+            "p-1 md:p-1.5 rounded-lg shrink-0",
             data.isTaskNode ? "bg-slate-700" : "bg-white/20"
           )}>
-            <Icon className="w-4 h-4 flex-shrink-0" />
+            <Icon className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
           </div>
-          <div className="flex flex-col text-left">
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 font-mono">
+          <div className="flex flex-col text-left min-w-0">
+            <div className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-60 font-mono truncate">
               {data.role}
             </div>
-            <div className="text-[9px] font-mono opacity-40 uppercase tracking-tighter mt-0.5">
-              [{truncateId(id)}]
-            </div>
-            <div className="font-black text-sm leading-tight mt-1 tracking-tight">
+            <div className="font-black text-xs md:text-sm leading-tight mt-0.5 md:mt-1 tracking-tight truncate">
               {data.name}
+            </div>
+            <div className="hidden md:block text-[9px] font-mono opacity-40 uppercase tracking-tighter mt-0.5">
+              [{truncateId(id)}]
             </div>
           </div>
         </div>
         
-        <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-slate-400 border-none" />
+        <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-slate-400 border-none opacity-0" />
       </div>
     </div>
   );

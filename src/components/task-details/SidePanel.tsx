@@ -13,6 +13,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 
+import { toast } from 'sonner';
+
 const truncateId = (id: string | null) => {
   if (!id) return "";
   if (id.length <= 12) return id;
@@ -27,6 +29,11 @@ export const SidePanel = () => {
   
   const [note, setNote] = useState("");
   const [statusUpdate, setStatusUpdate] = useState<SyncStatus>("IN_SYNC");
+  
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   // Parse ID: taskId or taskId-userId
   const isTaskNode = selectedNodeId && !selectedNodeId.includes("-");
@@ -60,13 +67,50 @@ export const SidePanel = () => {
       return res.json();
     },
     onSuccess: (data, vars) => {
-      // Optismistically update store
       if (taskId && currentUser?.id) {
         updateStoreStatus(taskId, currentUser.id, vars.status);
       }
-      // Refresh details to show new logs
       queryClient.invalidateQueries({ queryKey: ['task-details', taskId] });
       setNote("");
+      toast.success("Tactical status broadcasted");
+    },
+    onError: () => {
+      toast.error("Transmission failed");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Deletion failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      closeSidePanel();
+      toast.success("Execution node terminated");
+    },
+    onError: () => {
+      toast.error("Node termination failed");
+      setIsDeleting(false);
+    }
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async (vars: { title: string; description: string }) => {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vars)
+      });
+      if (!res.ok) throw new Error("Update failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-details', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsEditing(false);
+      toast.success("Tactical parameters updated");
     }
   });
 
@@ -86,9 +130,10 @@ export const SidePanel = () => {
       if (!res.ok) throw new Error("Transfer action failed");
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ['task-details', taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success(`Handover ${vars.action.toLowerCase()}ed`);
     }
   });
 
@@ -129,7 +174,7 @@ export const SidePanel = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar pb-24">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-40 gap-3">
             <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
@@ -141,13 +186,60 @@ export const SidePanel = () => {
           </div>
         ) : data ? (
           <div className="space-y-6">
-            {/* Context Card */}
-            <div className="bg-slate-800/40 rounded-xl border border-slate-700/50 p-4 shadow-inner">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <Target size={12} className="text-indigo-400" /> Current Context
+            {/* Context Card (Editable if Task Node) */}
+            <div className="bg-slate-800/40 rounded-xl border border-slate-700/50 p-4 shadow-inner group/content relative">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2"><Target size={12} className="text-indigo-400" /> Current Context</span>
+                {isTaskNode && !isEditing && (
+                  <button 
+                    onClick={() => {
+                      setEditTitle(data.title);
+                      setEditDesc(data.description || "");
+                      setIsEditing(true);
+                    }}
+                    className="text-[10px] text-indigo-400 hover:text-white transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
               </h3>
-              <p className="text-sm font-bold text-white leading-tight mb-1">{data.title}</p>
-              <p className="text-xs text-slate-400 leading-relaxed">{data.description || "No tactical description provided."}</p>
+              
+              {isEditing ? (
+                <div className="space-y-3 animate-in fade-in duration-200">
+                  <input 
+                    value={editTitle}
+                    onChange={e => setEditTitle(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                    placeholder="Task Title"
+                  />
+                  <textarea 
+                    value={editDesc}
+                    onChange={e => setEditDesc(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-300 focus:ring-1 focus:ring-indigo-500 outline-none min-h-[80px]"
+                    placeholder="Task Description"
+                  />
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => updateTaskMutation.mutate({ title: editTitle, description: editDesc })}
+                      disabled={updateTaskMutation.isPending}
+                      className="flex-1 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-[10px] font-bold rounded"
+                    >
+                      {updateTaskMutation.isPending ? "Updating..." : "Save Changes"}
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-white leading-tight mb-1">{data.title}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{data.description || "No tactical description provided."}</p>
+                </>
+              )}
             </div>
 
             {/* Target Details */}
@@ -381,6 +473,39 @@ export const SidePanel = () => {
           </div>
         )}
       </div>
+
+      {/* Dangerous Operations (Fixed at bottom if Task Node) */}
+      {isTaskNode && data && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-slate-900/80 backdrop-blur-xl border-t border-slate-800/50 flex flex-col gap-2">
+          {isDeleting ? (
+            <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-300">
+              <p className="text-[10px] text-red-400 font-black uppercase text-center tracking-widest">Confirm Permanent Termination?</p>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black rounded-lg transition-all shadow-lg shadow-red-500/20"
+                >
+                  {deleteMutation.isPending ? "TERMINATING..." : "CONFIRM DELETE"}
+                </button>
+                <button 
+                  onClick={() => setIsDeleting(false)}
+                  className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-black rounded-lg transition-all"
+                >
+                  ABORT
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsDeleting(true)}
+              className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500/60 hover:text-red-400 text-[10px] font-black rounded-lg border border-red-500/10 hover:border-red-500/30 transition-all uppercase tracking-widest"
+            >
+              Terminate Execution Node
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

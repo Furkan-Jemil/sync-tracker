@@ -60,41 +60,44 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
   };
 
   return (
-    <div className="relative flex flex-col items-center w-24 h-24 group">
+    <div className="relative flex flex-col items-center w-16 h-16 md:w-24 md:h-24 group">
       <Handle type="target" position={Position.Top} className="opacity-0 w-1 h-1" />
       
       {/* Aura */}
       <div className="absolute inset-0 flex items-center justify-center top-0">
         <div
-          className={`w-16 h-16 rounded-full ${auraClasses[status] || ""}`}
+          className={clsx(
+            "w-12 h-12 md:w-16 md:h-16 rounded-full transition-all duration-500",
+            auraClasses[status] || ""
+          )}
           aria-label={`status-${status}`}
         />
       </div>
       
-      {/* Avatar */}
-      <div className="absolute top-0 flex flex-col items-center">
+      {/* Avatar Container with Floating Animation */}
+      <div className="absolute top-0 flex flex-col items-center animate-[float_4s_ease-in-out_infinite]">
         {avatarUrl ? (
           <Image
             src={avatarUrl}
             alt={name}
             width={64}
             height={64}
-            className="rounded-full border-2 border-slate-900 shadow-lg relative z-10"
+            className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-slate-900 shadow-lg relative z-10 transition-transform group-hover:scale-110"
           />
         ) : (
-          <div className="flex items-center justify-center w-16 h-16 bg-slate-800 border-2 border-slate-700 rounded-full text-xl font-medium text-slate-300 relative z-10 shadow-lg">
+          <div className="flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-slate-800 border-2 border-slate-700 rounded-full text-sm md:text-xl font-medium text-slate-300 relative z-10 shadow-lg transition-transform group-hover:scale-110">
             {initials}
           </div>
         )}
         
-        {/* Name */}
-        <span className="mt-2 text-xs font-bold text-slate-200 truncate max-w-[120px] bg-slate-900/80 px-2 py-0.5 rounded backdrop-blur-sm" title={name}>
+        {/* Name (Hidden or very small on extreme mobile if needed, but here just scaled) */}
+        <span className="mt-1 md:mt-2 text-[10px] md:text-xs font-bold text-slate-200 truncate max-w-[80px] md:max-w-[120px] bg-slate-900/80 px-1.5 md:px-2 py-0.5 rounded backdrop-blur-sm border border-slate-800/50" title={name}>
           {name}
         </span>
         
         {/* Short ID */}
         {!isTaskNode && (
-          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter mt-1 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/50 shadow-inner">
+          <span className="hidden md:inline-block text-[9px] font-mono text-slate-500 uppercase tracking-tighter mt-1 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/50 shadow-inner">
             [{truncateId(userId)}]
           </span>
         )}
@@ -103,17 +106,25 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
         {!isTaskNode && (
           <div
             className={clsx(
-              "mt-1.5 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] rounded-md border shadow-lg backdrop-blur-md transition-all group-hover:scale-110",
+              "mt-1 md:mt-1.5 px-1.5 md:px-2.5 py-0.5 text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] md:tracking-[0.15em] rounded-md border shadow-lg backdrop-blur-md transition-all group-hover:scale-110",
               roleColors[role] || "bg-slate-700 border-slate-500 text-slate-100"
             )}
             title={role}
           >
-            {role}
+            {role.split(" ").pop()}
           </div>
         )}
       </div>
       
       <Handle type="source" position={Position.Bottom} className="opacity-0 w-1 h-1" />
+
+      {/* Internal CSS for floating animation if not in global CSS */}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-5px); }
+        }
+      `}</style>
     </div>
   );
 };
