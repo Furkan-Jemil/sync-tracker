@@ -50,12 +50,12 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
     Reviewer: "bg-purple-600",
   };
 
-  // Status aura classes
+  // Status aura classes (Refined for Service Map)
   const auraClasses: Record<string, string> = {
-    IN_SYNC: "animate-pulse opacity-80 ring-2 ring-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)]",
-    BLOCKED: "animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite] opacity-80 ring-2 ring-rose-500",
-    NEEDS_UPDATE: "animate-[pulse_3s_ease-in-out_infinite] opacity-80 ring-2 ring-amber-400",
-    HELP_REQUESTED: "animate-pulse opacity-80 ring-2 ring-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]",
+    IN_SYNC: "animate-pulse opacity-40 ring-4 ring-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)]",
+    BLOCKED: "animate-[ping_2s_linear_infinite] opacity-60 ring-4 ring-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.5)]",
+    NEEDS_UPDATE: "animate-pulse opacity-50 ring-4 ring-amber-500/40 shadow-[0_0_25px_rgba(245,158,11,0.2)]",
+    HELP_REQUESTED: "animate-[pulse_1s_ease-in-out_infinite] opacity-60 ring-4 ring-cyan-500 shadow-[0_0_30px_rgba(6,182,212,0.5)]",
   };
 
   return (
@@ -93,8 +93,8 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
         
         {/* Short ID */}
         {!isTaskNode && (
-          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter mt-0.5">
-            ID: {truncateId(userId)}
+          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter mt-1 bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/50 shadow-inner">
+            [{truncateId(userId)}]
           </span>
         )}
         

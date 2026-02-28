@@ -26,10 +26,10 @@ export type SyncNodeData = {
 export type SyncNode = Node<SyncNodeData, 'customTaskNode'>;
 
 const statusColors: Record<SyncStatus, string> = {
-  IN_SYNC: 'bg-emerald-500 text-white border-emerald-600',
-  NEEDS_UPDATE: 'bg-amber-400 text-amber-950 border-amber-500',
-  BLOCKED: 'bg-rose-500 text-white border-rose-600 shadow-[0_0_15px_rgba(244,63,94,0.4)]',
-  HELP_REQUESTED: 'bg-blue-500 text-white border-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.5)]',
+  IN_SYNC: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 backdrop-blur-md',
+  NEEDS_UPDATE: 'bg-amber-400/20 text-amber-500 border-amber-400/40 backdrop-blur-md',
+  BLOCKED: 'bg-rose-500/20 text-rose-400 border-rose-500/40 backdrop-blur-md shadow-[0_0_20px_rgba(244,63,94,0.3)]',
+  HELP_REQUESTED: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40 backdrop-blur-md shadow-[0_0_25px_rgba(6,182,212,0.4)]',
 };
 
 const statusIcons: Record<SyncStatus, React.ElementType> = {
@@ -63,10 +63,10 @@ const CustomNode = ({ id, data }: NodeProps<SyncNode>) => {
 
       <div 
         className={clsx(
-          "px-4 py-3 shadow-lg rounded-xl border-2 min-w-[200px] cursor-pointer transition-all hover:scale-105 active:scale-95",
-          data.isTaskNode ? "bg-slate-800 text-white border-slate-600" : statusColors[data.status],
-          data.status === 'BLOCKED' && "animate-[pulse_1.5s_cubic-bezier(0.4,0,0.6,1)_infinite]",
-          data.isTaskNode && "text-center ring-2 ring-slate-700 ring-offset-2 ring-offset-slate-50"
+          "px-5 py-4 shadow-2xl rounded-2xl border-2 min-w-[220px] cursor-pointer transition-all hover:scale-105 active:scale-95 group/node",
+          data.isTaskNode ? "bg-slate-950 text-cyan-400 border-cyan-500/50 shadow-[0_0_40px_rgba(6,182,212,0.15)]" : statusColors[data.status],
+          data.status === 'BLOCKED' && "animate-pulse",
+          data.isTaskNode && "text-center ring-4 ring-cyan-500/10 ring-offset-4 ring-offset-slate-950"
         )}
         onClick={() => openSidePanel(id)}
       >
@@ -80,13 +80,13 @@ const CustomNode = ({ id, data }: NodeProps<SyncNode>) => {
             <Icon className="w-4 h-4 flex-shrink-0" />
           </div>
           <div className="flex flex-col text-left">
-            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 font-mono">
               {data.role}
             </div>
-            <div className="text-[8px] font-mono opacity-50 uppercase tracking-tighter">
-              ID: {truncateId(id)}
+            <div className="text-[9px] font-mono opacity-40 uppercase tracking-tighter mt-0.5">
+              [{truncateId(id)}]
             </div>
-            <div className="font-extrabold text-sm leading-tight">
+            <div className="font-black text-sm leading-tight mt-1 tracking-tight">
               {data.name}
             </div>
           </div>

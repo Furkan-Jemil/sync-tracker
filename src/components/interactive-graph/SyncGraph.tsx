@@ -23,27 +23,27 @@ const nodeTypes = { customTaskNode: CustomNode, profileNode: ProfileNode };
 
 const EDGE_STYLES: Record<string, Partial<Edge>> = {
   assignment: {
-    type: "smoothstep",
-    style: { stroke: "#6366f1", strokeWidth: 2 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#6366f1" },
-    label: "assigns",
-    labelStyle: { fill: "#6366f1", fontSize: 9, fontWeight: 700 },
+    type: "default", // Bezier
+    style: { stroke: "#0ea5e9", strokeWidth: 2, strokeDasharray: "4 4" },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#0ea5e9" },
+    label: "LINK",
+    labelStyle: { fill: "#0ea5e9", fontSize: 8, fontWeight: 900, fontFamily: "monospace" },
   },
   responsibility: {
-    type: "smoothstep",
-    style: { stroke: "#10b981", strokeWidth: 2 },
+    type: "default",
+    style: { stroke: "#10b981", strokeWidth: 2, strokeDasharray: "4 4" },
     markerEnd: { type: MarkerType.ArrowClosed, color: "#10b981" },
   },
   collaboration: {
-    type: "smoothstep",
-    style: { stroke: "#f59e0b", strokeWidth: 1.5, strokeDasharray: "6 3" },
+    type: "default",
+    style: { stroke: "#f59e0b", strokeWidth: 1.5, strokeDasharray: "10 5" },
   },
   review: {
-    type: "smoothstep",
-    style: { stroke: "#8b5cf6", strokeWidth: 1.5 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#8b5cf6" },
-    label: "reviews",
-    labelStyle: { fill: "#8b5cf6", fontSize: 9, fontWeight: 700 },
+    type: "default",
+    style: { stroke: "#a855f7", strokeWidth: 1.5, strokeDasharray: "4 4" },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#a855f7" },
+    label: "AUDIT",
+    labelStyle: { fill: "#a855f7", fontSize: 8, fontWeight: 900, fontFamily: "monospace" },
   },
 };
 
