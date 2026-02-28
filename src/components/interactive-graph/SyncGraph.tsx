@@ -343,6 +343,7 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("HELPER");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -358,7 +359,11 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add helper");
-      onClose();
+      
+      setShowSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
@@ -380,6 +385,13 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
           {errorMsg && (
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
               {errorMsg}
+            </div>
+          )}
+
+          {showSuccess && (
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              Participant Successfully Coupled
             </div>
           )}
 

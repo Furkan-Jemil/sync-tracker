@@ -105,7 +105,7 @@ export const SocketListener = () => {
       socket.off("help_requested", onHelpRequested);
       socket.off("task_created", onTaskLifecycle);
       socket.off("task_updated", onTaskUpdated);
-      socket.off("participant_joined", onTaskUpdated); // Triggers re-fetch for new participant
+      socket.off("participant_joined", onParticipantJoined);
       socket.off("transfer_requested", onTransferEvent);
       socket.off("transfer_resolved", onTransferEvent);
     };
