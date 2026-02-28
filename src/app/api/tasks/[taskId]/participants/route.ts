@@ -23,7 +23,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid payload", details: result.error.format() }, { status: 400 });
     }
 
-    const { email: targetEmail, role } = result.data;
+    const { identifier: targetIdentifier, role } = result.data;
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
@@ -42,7 +42,15 @@ export async function POST(
     }
 
     // Ensure user exists
-    const targetUser = await prisma.user.findUnique({ where: { email: targetEmail } });
+    const targetUser = await prisma.user.findFirst({ 
+      where: { 
+        OR: [
+          { id: targetIdentifier },
+          { email: targetIdentifier },
+          { name: targetIdentifier }
+        ]
+      } 
+    });
     if (!targetUser) {
       return NextResponse.json({ error: "Target user not found" }, { status: 404 });
     }
