@@ -354,7 +354,7 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
       const res = await fetch(`/api/tasks/${taskId}/participants`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, role }),
+        body: JSON.stringify({ identifier: email, role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add helper");

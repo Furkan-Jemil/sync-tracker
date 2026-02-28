@@ -15,6 +15,12 @@ export type ProfileNodeData = {
 
 export type ProfileNodeType = Node<ProfileNodeData, 'profileNode'>;
 
+const truncateId = (id: string | null) => {
+  if (!id) return "";
+  if (id.length <= 12) return id;
+  return `${id.slice(0, 6)}...${id.slice(-4)}`;
+};
+
 /**
  * Circular profile node displaying avatar (or initials), name, role badge, and a status aura.
  * Uses Tailwind CSS for styling and lightweight CSS keyframe animations.
@@ -84,6 +90,13 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
         <span className="mt-2 text-xs font-bold text-slate-200 truncate max-w-[120px] bg-slate-900/80 px-2 py-0.5 rounded backdrop-blur-sm" title={name}>
           {name}
         </span>
+        
+        {/* Short ID */}
+        {!isTaskNode && (
+          <span className="text-[8px] font-mono text-slate-500 uppercase tracking-tighter mt-0.5">
+            ID: {truncateId(userId)}
+          </span>
+        )}
         
         {/* Role badge */}
         {!isTaskNode && (

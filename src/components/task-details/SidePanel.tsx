@@ -13,6 +13,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import clsx from 'clsx';
 
+const truncateId = (id: string | null) => {
+  if (!id) return "";
+  if (id.length <= 12) return id;
+  return `${id.slice(0, 6)}...${id.slice(-4)}`;
+};
+
 export const SidePanel = () => {
   const queryClient = useQueryClient();
   const { isSidePanelOpen, selectedNodeId, closeSidePanel } = useUIStore();
@@ -65,14 +71,14 @@ export const SidePanel = () => {
   });
 
   const transferMutation = useMutation({
-    mutationFn: async (vars: { action: "INITIATE" | "ACCEPT" | "REJECT"; toUserId?: string; transferId?: string }) => {
+    mutationFn: async (vars: { action: "INITIATE" | "ACCEPT" | "REJECT"; toUserIdentifier?: string; transferId?: string }) => {
       const res = await fetch(`/api/tasks/${taskId}/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: vars.action,
           fromUserId: currentUser?.id,
-          toUserId: vars.toUserId,
+          toUserIdentifier: vars.toUserIdentifier,
           transferId: vars.transferId,
           userId: currentUser?.id // for ACCEPT/REJECT
         })
@@ -106,8 +112,8 @@ export const SidePanel = () => {
             <h2 className="text-sm font-bold text-white tracking-tight">
               {isTaskNode ? "Task Logistics" : "Participant Intel"}
             </h2>
-            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest leading-none mt-1">
-              {selectedNodeId}
+            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest leading-none mt-1" title={selectedNodeId || ""}>
+              ID: {truncateId(selectedNodeId)}
             </p>
           </div>
         </div>
@@ -312,11 +318,11 @@ export const SidePanel = () => {
                         Hand over accountability to another agent. This requires their explicit acceptance.
                       </p>
                       <input 
-                        placeholder="Target Agent User ID..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-[10px] font-mono text-slate-400"
+                        placeholder="Target Agent Email / ID..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-[10px] font-mono text-slate-400 focus:ring-1 focus:ring-indigo-500 outline-none"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
-                            transferMutation.mutate({ action: "INITIATE", toUserId: e.currentTarget.value });
+                            transferMutation.mutate({ action: "INITIATE", toUserIdentifier: e.currentTarget.value });
                             e.currentTarget.value = "";
                           }
                         }}

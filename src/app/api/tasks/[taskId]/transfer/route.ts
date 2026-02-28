@@ -12,8 +12,25 @@ export async function POST(
     const { action } = body as { action: "INITIATE" | "ACCEPT" | "REJECT" };
 
     if (action === "INITIATE") {
-      const { fromUserId, toUserId, note } = body as any;
-      if (!fromUserId || !toUserId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+      const { fromUserId, toUserIdentifier, note } = body as any;
+      if (!fromUserId || !toUserIdentifier) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+      // Find target user by identifier
+      const targetUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: toUserIdentifier },
+            { email: toUserIdentifier },
+            { name: toUserIdentifier }
+          ]
+        }
+      });
+
+      if (!targetUser) {
+        return NextResponse.json({ error: "Target agent not found" }, { status: 404 });
+      }
+
+      const toUserId = targetUser.id;
 
       const transfer = await prisma.responsibilityTransfer.create({
         data: {

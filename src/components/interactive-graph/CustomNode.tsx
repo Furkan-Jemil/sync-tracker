@@ -5,6 +5,12 @@ import { User, AlertCircle, CheckCircle2, HelpCircle, Clock, Calendar } from 'lu
 import { useUIStore } from '@/store/useUIStore';
 import { formatDistanceToNow } from 'date-fns';
 
+const truncateId = (id: string | null) => {
+  if (!id) return "";
+  if (id.length <= 12) return id;
+  return `${id.slice(0, 6)}...${id.slice(-4)}`;
+};
+
 export type SyncStatus = 'IN_SYNC' | 'NEEDS_UPDATE' | 'BLOCKED' | 'HELP_REQUESTED';
 
 export type SyncNodeData = {
@@ -76,6 +82,9 @@ const CustomNode = ({ id, data }: NodeProps<SyncNode>) => {
           <div className="flex flex-col text-left">
             <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">
               {data.role}
+            </div>
+            <div className="text-[8px] font-mono opacity-50 uppercase tracking-tighter">
+              ID: {truncateId(id)}
             </div>
             <div className="font-extrabold text-sm leading-tight">
               {data.name}
