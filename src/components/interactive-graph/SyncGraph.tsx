@@ -246,18 +246,18 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
       event.preventDefault();
       // Only show context menu for profile nodes
       if (node.type === "profileNode") {
-        const menuWidth = 192; // w-48
-        const menuHeight = 220; // Estimated height with all buttons
+        const menuWidth = 160; // w-40
+        const menuHeight = 180; // Compact height
         
         let top = event.clientY;
         let left = event.clientX;
 
-        // Boundary detection
+        // Boundary detection (relative to viewport)
         if (left + menuWidth > window.innerWidth) {
-          left = window.innerWidth - menuWidth - 10;
+          left = window.innerWidth - menuWidth - 12;
         }
         if (top + menuHeight > window.innerHeight) {
-          top = window.innerHeight - menuHeight - 10;
+          top = window.innerHeight - menuHeight - 12;
         }
 
         setContextMenu({
@@ -314,17 +314,20 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
       {/* Context Menu Overlay */}
       {contextMenu && (
         <div 
-          className="absolute z-50 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl py-1 transform scale-in-center animate-in fade-in zoom-in-95 duration-100"
-          style={{ top: contextMenu.top, left: contextMenu.left }}
+          className="fixed z-[100] w-40 bg-slate-900 border border-slate-800 rounded-xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] py-1.5 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100"
+          style={{ 
+            top: contextMenu.top, 
+            left: contextMenu.left,
+          }}
         >
-          <div className="px-4 py-2 border-b border-slate-800">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">{contextMenu.role}</p>
-            <p className="text-xs font-bold text-white truncate">{contextMenu.name}</p>
+          <div className="px-3 py-1.5 border-b border-slate-800/50 mb-1">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter leading-tight opacity-70">{contextMenu.role}</p>
+            <p className="text-[11px] font-bold text-white truncate">{contextMenu.name}</p>
           </div>
           
           {/* General Actions */}
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
             onClick={() => {
               setMessageUserModal({
                 taskId: contextMenu.taskId,
@@ -338,10 +341,10 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           </button>
 
           {/* Actions Section */}
-          <div className="h-px bg-slate-800 my-1 mx-2" />
+          <div className="h-px bg-slate-800/50 my-1 mx-1.5" />
           
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
             onClick={() => {
               setAddHelperModal(contextMenu.taskId);
               setContextMenu(null);
@@ -351,7 +354,7 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           </button>
           
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
             onClick={() => {
               setAssignRoleModal({
                 taskId: contextMenu.taskId,
@@ -374,7 +377,7 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
 
             return (
               <button 
-                className="w-full text-left px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 transition-colors"
+                className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                 onClick={() => {
                   setRemoveParticipantModal({
                     taskId: contextMenu.taskId,
