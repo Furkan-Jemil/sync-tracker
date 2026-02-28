@@ -79,7 +79,26 @@ export function LogsView() {
                 </div>
 
                 <p className="text-sm text-slate-300 leading-relaxed font-medium">
-                  {log.content}
+                  {(() => {
+                    if (log.logType === 'PARTICIPANT_JOINED' && log.content?.startsWith('Added as')) {
+                      const match = log.content.match(/Added as (.*?) by (.*)/);
+                      if (match) {
+                        return (
+                          <span>
+                            <span className="font-bold text-slate-200">{match[2]}</span>
+                            {' added '}
+                            <span className="font-bold text-slate-200">{log.user?.name || 'System'}</span>
+                            {' as a '}
+                            <span className="text-indigo-400 text-xs tracking-wide">{match[1]}</span>
+                          </span>
+                        );
+                      }
+                    }
+                    if (log.logType === 'RESPONSIBILITY_TRANSFER') {
+                       return <span><span className="font-bold text-slate-200">{log.user?.name}</span> {log.content}</span>;
+                    }
+                    return log.content;
+                  })()}
                 </p>
 
                 <div className="mt-4 flex items-center gap-2">
