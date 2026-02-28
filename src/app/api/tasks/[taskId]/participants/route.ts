@@ -21,8 +21,15 @@ export async function POST(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    if (task.ownerId !== user.userId && task.assignerId !== user.userId) {
-       return NextResponse.json({ error: "Forbidden: only owner or assigner can add participants" }, { status: 403 });
+    const requesterParticipant = await prisma.taskParticipant.findUnique({
+      where: { taskId_userId: { taskId, userId: user.userId } }
+    });
+
+    const isOwnerOrAssigner = task.ownerId === user.userId || task.assignerId === user.userId;
+    const isLeadContibutor = requesterParticipant?.role === "CONTRIBUTOR";
+
+    if (!isOwnerOrAssigner && !isLeadContibutor) {
+       return NextResponse.json({ error: "Forbidden: only owner, assigner, or lead contributor can add participants" }, { status: 403 });
     }
 
     const body = await req.json();
