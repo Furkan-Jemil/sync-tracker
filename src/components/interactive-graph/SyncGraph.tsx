@@ -125,9 +125,9 @@ function buildGraphFromTasks(tasks: Task[]) {
         } as Edge);
       });
 
-      // ── Collaboration edges (Contributor ↔ Helper) ─────────────────────
-      const contribs = contributors.filter((c) => c.role === "Contributor");
-      const helpers = contributors.filter((c) => c.role === "Helper");
+      // ── Collaboration edges (Contributor ↔ Helper) (Case-insensitive) ──
+      const contribs = contributors.filter((c) => c.role.toUpperCase() === "CONTRIBUTOR");
+      const helpers = contributors.filter((c) => c.role.toUpperCase() === "HELPER");
       contribs.forEach((c) => {
         helpers.forEach((h) => {
           edges.push({
