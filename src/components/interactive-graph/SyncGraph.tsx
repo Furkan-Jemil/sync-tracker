@@ -429,16 +429,52 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // User list state
+  const [users, setUsers] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [fetchingUsers, setFetchingUsers] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch("/api/users");
+        const data = await res.json();
+        if (data.success) {
+          setUsers(data.users);
+        }
+      } catch (err) {
+        console.error("Failed to fetch users", err);
+      } finally {
+        setFetchingUsers(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter((u) => 
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
 
+    const identifier = selectedUser || email;
+
+    if (!identifier) {
+      setErrorMsg("Please select a user or enter an email.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/tasks/${taskId}/participants`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: email, role }),
+        body: JSON.stringify({ identifier, role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add helper");
@@ -459,7 +495,10 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-          <h2 className="text-sm font-bold text-white tracking-tight uppercase italic">Append Node Link</h2>
+          <div className="flex flex-col">
+            <h2 className="text-sm font-bold text-white tracking-tight uppercase italic">Append Node Link</h2>
+            <p className="text-[10px] text-slate-500 font-medium">Select a participant to couple with this task</p>
+          </div>
           <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-white">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
@@ -467,47 +506,94 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium animate-in slide-in-from-top-1 duration-200">
               {errorMsg}
             </div>
           )}
 
           {showSuccess && (
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-2">
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-2 animate-in zoom-in-95 duration-200">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
               Participant Successfully Coupled
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">User Email / ID</label>
-            <input
-              required
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter Target User Identifier..."
-              className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono"
-            />
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select Target User</label>
+            
+            {/* Search Input */}
+            <div className="relative group">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (selectedUser) setSelectedUser(null); // Clear selection if typing
+                }}
+                placeholder="Search by name or email..."
+                className="w-full h-10 bg-slate-950 border border-slate-800 rounded-t-lg px-3 pl-9 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono"
+              />
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-indigo-500 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </div>
+            </div>
+
+            {/* User Selection List */}
+            <div className="w-full max-h-40 overflow-y-auto bg-slate-950 border-x border-b border-slate-800 rounded-b-lg custom-scrollbar">
+              {fetchingUsers ? (
+                <div className="p-4 text-center text-[10px] text-slate-600 animate-pulse uppercase font-black tracking-widest">Initialising User Registry...</div>
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedUser(u.id);
+                      setSearchQuery(u.name);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-xs transition-all flex flex-col gap-0.5 hover:bg-indigo-500/10 border-b border-slate-800/30 last:border-0 ${selectedUser === u.id ? 'bg-indigo-500/20' : ''}`}
+                  >
+                    <span className={`font-bold ${selectedUser === u.id ? 'text-indigo-400' : 'text-slate-200'}`}>{u.name}</span>
+                    <span className="text-[10px] text-slate-500 font-mono tracking-tight">{u.email}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="p-4 text-center text-[10px] text-slate-600 italic">No nodes found matching criteria.</div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all uppercase"
-            >
-              <option value="HELPER">Helper</option>
-              <option value="CONTRIBUTOR">Contributor</option>
-              <option value="REVIEWER">Reviewer</option>
-            </select>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Assign Operational Role</label>
+            <div className="relative">
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all uppercase appearance-none cursor-pointer"
+              >
+                <option value="HELPER">Helper</option>
+                <option value="CONTRIBUTOR">Contributor</option>
+                <option value="REVIEWER">Reviewer</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-600">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
           </div>
 
           <div className="pt-2 flex gap-2">
-            <button type="button" onClick={onClose} className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-[2] h-10 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
-              {loading ? "Processing..." : "Establish Link"}
+            <button type="button" onClick={onClose} className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all border border-slate-700">Cancel</button>
+            <button 
+              type="submit" 
+              disabled={loading || (!selectedUser && !searchQuery.includes('@'))} 
+              className="flex-[2] h-10 bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-800/50 disabled:text-slate-600 disabled:border-slate-800 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 border border-indigo-400/20"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Linking...
+                </>
+              ) : "Establish Link"}
             </button>
           </div>
         </form>
