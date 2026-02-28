@@ -130,7 +130,7 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* ── Sidebar ──────────────────────────────────────────────── */}
-      <aside className="w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 gap-6 shrink-0">
+      <aside className="hidden md:flex w-16 bg-slate-900 border-r border-slate-800 flex flex-col items-center py-6 gap-6 shrink-0">
         {/* Logo */}
         <div
           onClick={() => router.push("/")}
@@ -188,9 +188,9 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
       {/* ── Main Content ─────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 shrink-0 border-b border-slate-800 bg-slate-900/60 backdrop-blur-xl flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-extrabold tracking-tight text-white uppercase italic">
+        <header className="h-14 md:h-16 shrink-0 border-b border-slate-800 bg-slate-900/60 backdrop-blur-xl flex items-center justify-between px-4 md:px-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <h1 className="text-sm md:text-lg font-extrabold tracking-tight text-white uppercase italic">
               {activeTab}
             </h1>
             {activeTab === "dashboard" && (
@@ -230,9 +230,9 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
 
             <button
               onClick={() => setIsTaskModalOpen(true)}
-              className="h-9 px-4 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+              className="h-8 md:h-9 px-3 md:px-4 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] md:text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5 md:gap-2"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />
               New Task
             </button>
           </div>
@@ -278,16 +278,43 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
           {/* Side Panel (slides in from right) */}
           <div
             className={clsx(
-              "shrink-0 border-l border-slate-800 bg-slate-900 transition-all duration-300 overflow-hidden",
-              isSidePanelOpen ? "w-96" : "w-0"
+              "shrink-0 border-l border-slate-800 bg-slate-900 transition-all duration-300 overflow-hidden fixed md:relative right-0 top-14 md:top-0 h-[calc(100vh-3.5rem)] md:h-full z-[80]",
+              isSidePanelOpen ? "w-full md:w-96" : "w-0"
             )}
           >
             {isSidePanelOpen && <SidePanel />}
           </div>
         </div>
 
-        {/* Status Bar */}
-        <footer className="h-8 shrink-0 bg-slate-900 border-t border-slate-800 flex items-center px-4 text-[11px] text-slate-500 gap-4 font-mono">
+        {/* ── Bottom Navigation (Mobile) ───────────────────────────── */}
+        <nav className="md:hidden h-16 shrink-0 bg-slate-900 border-t border-slate-800 flex items-center justify-around px-2 z-[90]">
+          <BottomNavIcon
+            icon={LayoutGrid}
+            active={activeTab === "dashboard"}
+            onClick={() => router.push("/")}
+          />
+          <BottomNavIcon
+            icon={Users}
+            active={activeTab === "team"}
+            onClick={() => router.push("/team")}
+          />
+          <BottomNavIcon
+            icon={GitBranch}
+            active={activeTab === "tasks"}
+            onClick={() => router.push("/tasks")}
+          />
+          <BottomNavIcon
+            icon={Activity}
+            active={activeTab === "logs"}
+            onClick={() => router.push("/activity")}
+          />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-[10px] font-black flex items-center justify-center text-white shadow-md">
+            {user?.name?.slice(0, 2).toUpperCase() || "UN"}
+          </div>
+        </nav>
+
+        {/* Status Bar (Desktop Only) */}
+        <footer className="hidden md:flex h-8 shrink-0 bg-slate-900 border-t border-slate-800 items-center px-4 text-[11px] text-slate-500 gap-4 font-mono">
           <span className="flex items-center gap-1.5">
             <span
               className={clsx(
@@ -310,6 +337,30 @@ export function DashboardShell({ initialTab }: DashboardShellProps) {
         onClose={() => setIsTaskModalOpen(false)}
       />
     </div>
+  );
+}
+
+function BottomNavIcon({
+  icon: Icon,
+  active = false,
+  onClick,
+}: {
+  icon: React.ElementType;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        "w-12 h-12 rounded-xl flex items-center justify-center transition-all",
+        active
+          ? "bg-indigo-500/20 text-indigo-400"
+          : "text-slate-500"
+      )}
+    >
+      <Icon className="w-6 h-6" />
+    </button>
   );
 }
 

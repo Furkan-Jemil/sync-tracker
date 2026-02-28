@@ -68,11 +68,12 @@ function ParticipantNode({ participant, taskId }: { participant: Participant; ta
   const cfg = statusConfig[participant.syncStatus];
   const StatusIcon = cfg.icon;
   const RoleIcon = roleIcons[participant.role] ?? User;
-  const isSelected = selectedNodeId === participant.userId;
+  const compositeId = `${taskId}-${participant.userId}`;
+  const isSelected = selectedNodeId === compositeId;
 
   return (
     <button
-      onClick={() => openSidePanel(participant.userId)}
+      onClick={() => openSidePanel(compositeId)}
       className={clsx(
         "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left group",
         cfg.bg,
@@ -211,7 +212,7 @@ export const ResponsibilityTree = ({ tasks }: ResponsibilityTreeProps) => {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full max-w-3xl mx-auto px-4 md:px-0 pb-20 md:pb-0">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-black text-white tracking-tight">

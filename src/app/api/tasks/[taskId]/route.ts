@@ -25,6 +25,7 @@ export async function GET(
           include: { user: { select: { id: true, name: true, email: true } } },
         },
         syncLogs: {
+          include: { user: { select: { id: true, name: true } } },
           orderBy: { createdAt: "desc" },
         },
         milestones: {

@@ -30,26 +30,26 @@ export function TeamView() {
   }, [users, query]);
 
   return (
-    <div className="p-8 h-full overflow-y-auto bg-slate-950">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-950">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Organization Team</h2>
-          <p className="text-sm text-slate-400 mt-1">Directory of sync-aware personnel and roles.</p>
+          <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">Organization Team</h2>
+          <p className="text-xs md:text-sm text-slate-400 mt-1">Directory of sync-aware personnel and roles.</p>
         </div>
         
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
             placeholder="Search members..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-64 h-10 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 transition-all"
+            className="w-full sm:w-64 h-10 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 transition-all"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pb-20 md:pb-0">
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-48 bg-slate-900/50 border border-slate-800 rounded-2xl animate-pulse" />

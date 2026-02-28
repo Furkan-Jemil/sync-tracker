@@ -27,8 +27,8 @@ export function TasksView({ tasks }: TasksViewProps) {
   }, [tasks, query]);
 
   return (
-    <div className="p-8 h-full overflow-y-auto bg-slate-950">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-950">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">
             System Tasks
@@ -38,20 +38,20 @@ export function TasksView({ tasks }: TasksViewProps) {
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <div className="relative">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input
               type="text"
               placeholder="Search tasks..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-64 h-10 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 transition-all"
+              className="w-full sm:w-64 h-10 bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 transition-all"
             />
           </div>
-          <button className="px-4 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white flex items-center gap-2 text-sm font-medium transition-all">
+          <button className="px-3 md:px-4 h-10 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 hover:text-white flex items-center gap-2 text-sm font-medium transition-all shrink-0">
             <Filter size={16} />
-            Filters
+            <span className="hidden xs:inline">Filters</span>
           </button>
         </div>
       </div>
@@ -85,7 +85,7 @@ export function TasksView({ tasks }: TasksViewProps) {
               <div
                 key={task.id}
                 onClick={() => openSidePanel(task.id)}
-                className="group bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-5 transition-all cursor-pointer flex items-center justify-between"
+                className="group bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-4 md:p-5 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
@@ -106,7 +106,7 @@ export function TasksView({ tasks }: TasksViewProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center justify-between md:justify-end gap-4 md:gap-6 w-full md:w-auto pt-4 md:pt-0 border-t border-slate-800 md:border-t-0">
                   <div className="text-right">
                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
                       Progress
@@ -116,20 +116,20 @@ export function TasksView({ tasks }: TasksViewProps) {
                     </p>
                   </div>
 
-                  <div className="w-px h-8 bg-slate-800" />
+                  <div className="hidden md:block w-px h-8 bg-slate-800" />
 
                   <div className="text-right">
                     <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">
                       Responsible
                     </p>
-                    <p className="text-sm text-slate-300 font-medium">
+                    <p className="text-xs md:text-sm text-slate-300 font-medium max-w-[100px] truncate">
                       {responsible}
                     </p>
                   </div>
 
-                  <div className="w-px h-8 bg-slate-800" />
+                  <div className="hidden md:block w-px h-8 bg-slate-800" />
 
-                  <div className="flex -space-x-2">
+                  <div className="flex -space-x-1.5 md:-space-x-2">
                     {task.participants.slice(0, 4).map((p) => (
                       <div
                         key={p.userId}

@@ -37,10 +37,10 @@ export function LogsView() {
   };
 
   return (
-    <div className="p-8 h-full overflow-y-auto bg-slate-950">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-white tracking-tight text-glow">Activity Intelligence</h2>
-        <p className="text-sm text-slate-400 mt-1 uppercase tracking-widest font-mono text-[10px]">Real-time execution log audit</p>
+    <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-950 pb-24 md:pb-8">
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight text-glow">Activity Intelligence</h2>
+        <p className="text-[9px] md:text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-mono">Real-time execution log audit</p>
       </div>
 
       <div className="relative space-y-4">
@@ -57,23 +57,23 @@ export function LogsView() {
           logs?.map((log) => (
             <div key={log.id} className="relative flex gap-6 items-start group">
               {/* Indicator Node */}
-              <div className="relative z-10 p-2.5 rounded-full bg-slate-900 border-2 border-slate-800 shadow-xl group-hover:border-indigo-500 transition-colors">
+              <div className="relative z-10 p-2 md:p-2.5 rounded-full bg-slate-900 border-2 border-slate-800 shadow-xl group-hover:border-indigo-500 transition-colors shrink-0">
                 {getLogIcon(log.logType)}
               </div>
 
               {/* Log Card */}
-              <div className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-lg group-hover:translate-x-1 duration-300">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <div className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-5 hover:border-slate-700 transition-all shadow-lg group-hover:translate-x-1 duration-300">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-1.5 sm:gap-0">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                    <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                       {log.logType.replace("_", " ")}
                     </span>
-                    <span className="text-xs text-slate-300 font-bold flex items-center gap-1.5">
+                    <span className="text-[11px] md:text-xs text-slate-300 font-bold flex items-center gap-1.5">
                       <User size={12} className="text-slate-500" />
                       {log.user?.name || "System"}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-500">
+                  <span className="text-[9px] md:text-[10px] font-mono text-slate-500">
                     {formatDistanceToNow(new Date(log.createdAt))} ago
                   </span>
                 </div>

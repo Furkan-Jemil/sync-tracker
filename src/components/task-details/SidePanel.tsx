@@ -98,6 +98,10 @@ export const SidePanel = () => {
     ? data?.participants.find((p: any) => p.userId === participantUserId) || (data?.ownerId === participantUserId ? { user: data.owner, role: 'Responsible Owner', syncStatus: 'IN_SYNC' } : null)
     : null;
 
+  if (participant && !participant.user) {
+    console.warn("[SidePanel] Participant found but user data is missing", participant);
+  }
+
   const isMe = participantUserId === currentUser?.id;
 
   return (
@@ -125,7 +129,7 @@ export const SidePanel = () => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 md:p-5 custom-scrollbar">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-40 gap-3">
             <Loader2 className="w-6 h-6 text-indigo-400 animate-spin" />
@@ -152,10 +156,10 @@ export const SidePanel = () => {
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-slate-800">
-                      {participant.user.name.slice(0, 2).toUpperCase()}
+                      {participant.user?.name ? participant.user.name.slice(0, 2).toUpperCase() : "??"}
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white leading-none">{participant.user.name}</div>
+                      <div className="text-xs font-bold text-white leading-none">{participant.user?.name || "Unknown Agent"}</div>
                       <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">{participant.role}</div>
                     </div>
                   </div>
@@ -353,7 +357,7 @@ export const SidePanel = () => {
                         {log.logType === 'HELP_REQUEST' ? <AlertCircle size={10} className="text-white" /> : <Clock size={10} className="text-slate-400" />}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-slate-200">{log.user.name}</span>
+                        <span className="text-[11px] font-bold text-slate-200">{log.user?.name || "System"}</span>
                         <span className="text-[9px] text-slate-500 font-medium">{formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}</span>
                       </div>
                       <div className="p-2 rounded-lg bg-slate-800/60 border border-slate-700/50 group-hover:border-slate-600 transition-colors">
