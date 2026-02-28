@@ -162,8 +162,12 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("[PARTICIPANTS_DELETE_ERROR]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal Server Error", 
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined 
+    }, { status: 500 });
   }
 }

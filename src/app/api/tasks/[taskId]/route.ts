@@ -53,7 +53,11 @@ export async function GET(
     return NextResponse.json({ success: true, task });
   } catch (error: any) {
     console.error("[TASK_GET_ERROR]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Internal Server Error", 
+      message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined 
+    }, { status: 500 });
   }
 }
 
