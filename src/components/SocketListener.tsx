@@ -70,7 +70,16 @@ export const SocketListener = () => {
 
     const onTaskUpdated = (payload: { task: any }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['task-details', payload.task.id] });
+      if (payload?.task?.id) {
+        queryClient.invalidateQueries({ queryKey: ['task-details', payload.task.id] });
+      }
+    };
+
+    const onParticipantJoined = (payload: { participant: any }) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (payload?.participant?.taskId) {
+        queryClient.invalidateQueries({ queryKey: ['task-details', payload.participant.taskId] });
+      }
     };
 
     const onTransferEvent = (payload: any) => {
@@ -86,6 +95,7 @@ export const SocketListener = () => {
     socket.on("help_requested", onHelpRequested);
     socket.on("task_created", onTaskLifecycle);
     socket.on("task_updated", onTaskUpdated);
+    socket.on("participant_joined", onParticipantJoined);
     socket.on("transfer_requested", onTransferEvent);
     socket.on("transfer_resolved", onTransferEvent);
 
@@ -95,6 +105,7 @@ export const SocketListener = () => {
       socket.off("help_requested", onHelpRequested);
       socket.off("task_created", onTaskLifecycle);
       socket.off("task_updated", onTaskUpdated);
+      socket.off("participant_joined", onTaskUpdated); // Triggers re-fetch for new participant
       socket.off("transfer_requested", onTransferEvent);
       socket.off("transfer_resolved", onTransferEvent);
     };
