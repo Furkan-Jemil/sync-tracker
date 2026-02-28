@@ -92,7 +92,12 @@ export async function PATCH(
     });
 
     // Fire socket event to the task room
-    socketEmitter.to(`task:${taskId}`).emit("task_updated", { task: updatedTask });
+    // Best-effort socket emission
+    try {
+      socketEmitter.to(`task:${taskId}`).emit("task_updated", { task: updatedTask });
+    } catch (socketError) {
+      console.warn("[SOCKET_EMIT_WARNING] Failed to emit task_updated event:", socketError);
+    }
 
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (error: any) {

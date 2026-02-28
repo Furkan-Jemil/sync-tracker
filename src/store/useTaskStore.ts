@@ -15,6 +15,8 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
+  ownerId: string;
+  assignerId: string;
   participants: Participant[];
   milestones?: any[];
 }

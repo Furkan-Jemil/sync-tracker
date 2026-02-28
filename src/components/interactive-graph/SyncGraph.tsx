@@ -11,6 +11,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/useAuthStore";
 
 import { Task, SyncStatus } from "@/store/useTaskStore";
 import { socket } from "@/lib/socket";
@@ -178,6 +179,8 @@ interface SyncGraphProps {
 }
 
 export const SyncGraph = ({ tasks }: SyncGraphProps) => {
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const { nodes, initialEdges } = useMemo(() => {
     const { nodes, edges } = buildGraphFromTasks(tasks);
     return { nodes, initialEdges: edges };
@@ -314,34 +317,14 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           className="absolute z-50 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl py-1 transform scale-in-center animate-in fade-in zoom-in-95 duration-100"
           style={{ top: contextMenu.top, left: contextMenu.left }}
         >
-          <div className="px-3 py-2 border-b border-slate-800 mb-1">
-            <span className="text-[10px] uppercase font-black tracking-wider text-slate-500">Node Actions</span>
+          <div className="px-4 py-2 border-b border-slate-800">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">{contextMenu.role}</p>
+            <p className="text-xs font-bold text-white truncate">{contextMenu.name}</p>
           </div>
+          
+          {/* General Actions */}
           <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-indigo-500 hover:bg-opacity-20 transition-colors"
-            onClick={() => {
-              setAddHelperModal(contextMenu.taskId);
-              setContextMenu(null);
-            }}
-          >
-            Add Helper
-          </button>
-          <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-indigo-500 hover:bg-opacity-20 transition-colors"
-            onClick={() => {
-              setAssignRoleModal({
-                taskId: contextMenu.taskId,
-                userId: contextMenu.userId,
-                name: contextMenu.name,
-                currentRole: contextMenu.role,
-              });
-              setContextMenu(null);
-            }}
-          >
-            Assign Role
-          </button>
-          <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-indigo-500 hover:bg-opacity-20 transition-colors"
+            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
             onClick={() => {
               setMessageUserModal({
                 taskId: contextMenu.taskId,
@@ -353,19 +336,59 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           >
             Message User
           </button>
-          <button 
-            className="w-full text-left px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 transition-colors"
-            onClick={() => {
-              setRemoveParticipantModal({
-                taskId: contextMenu.taskId,
-                userId: contextMenu.userId,
-                name: contextMenu.name,
-              });
-              setContextMenu(null);
-            }}
-          >
-            Remove Participant
-          </button>
+
+          {/* Admin Actions (Owner/Assigner only) */}
+          {(() => {
+            const task = tasks.find(t => t.id === contextMenu.taskId);
+            const isAuthorized = user && (task?.ownerId === user.id || task?.assignerId === user.id);
+            const isTargetOwner = task?.ownerId === contextMenu.userId;
+
+            if (!isAuthorized) return null;
+
+            return (
+              <>
+                <div className="h-px bg-slate-800 my-1 mx-2" />
+                <button 
+                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                  onClick={() => {
+                    setAddHelperModal(contextMenu.taskId);
+                    setContextMenu(null);
+                  }}
+                >
+                  Add Helper
+                </button>
+                <button 
+                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                  onClick={() => {
+                    setAssignRoleModal({
+                      taskId: contextMenu.taskId,
+                      userId: contextMenu.userId,
+                      name: contextMenu.name,
+                      currentRole: contextMenu.role,
+                    });
+                    setContextMenu(null);
+                  }}
+                >
+                  Assign Role
+                </button>
+                {!isTargetOwner && (
+                  <button 
+                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 transition-colors"
+                    onClick={() => {
+                      setRemoveParticipantModal({
+                        taskId: contextMenu.taskId,
+                        userId: contextMenu.userId,
+                        name: contextMenu.name,
+                      });
+                      setContextMenu(null);
+                    }}
+                  >
+                    Remove Participant
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 

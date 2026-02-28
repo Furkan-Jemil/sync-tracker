@@ -129,24 +129,37 @@ export async function DELETE(
        return NextResponse.json({ error: "Forbidden: only owner or assigner can remove participants" }, { status: 403 });
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.taskParticipant.delete({
-        where: {
-          taskId_userId: { taskId, userId: targetUserId }
-        }
-      });
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Use deleteMany to avoid throwing P2025 if already deleted
+        await tx.taskParticipant.deleteMany({
+          where: {
+            taskId,
+            userId: targetUserId
+          }
+        });
 
-      await tx.syncLog.create({
-        data: {
-          taskId,
-          userId: targetUserId,
-          logType: "PARTICIPANT_REMOVED",
-          content: `Removed from task by ${user.email}`,
-        }
+        await tx.syncLog.create({
+          data: {
+            taskId,
+            userId: targetUserId,
+            logType: "PARTICIPANT_REMOVED",
+            content: `Removed from task by ${user.email}`,
+          }
+        });
       });
-    });
+    } catch (dbError) {
+      console.error("[PARTICIPANTS_DELETE_DB_ERROR]", dbError);
+      throw dbError; // rethrow to be caught by outer catch
+    }
 
-    socketEmitter.to(`task:${taskId}`).emit("participant_removed", { taskId, userId: targetUserId });
+    // Best-effort socket emission
+    try {
+      socketEmitter.to(`task:${taskId}`).emit("participant_removed", { taskId, userId: targetUserId });
+    } catch (socketError) {
+      console.warn("[SOCKET_EMIT_WARNING] Failed to emit participant_removed event:", socketError);
+      // We don't fail the request if only the socket emission fails
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
