@@ -1,9 +1,9 @@
 import { Node, Edge, Position } from '@xyflow/react';
 
-const nodeWidth = 220;
-const nodeHeight = 80;
-const verticalGap = 150;
-const horizontalGap = 200;
+const nodeWidth = 120;
+const nodeHeight = 120;
+const verticalGap = 160;
+const horizontalGap = 160;
 
 export const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
   // Determine levels via topological sort/BFS
