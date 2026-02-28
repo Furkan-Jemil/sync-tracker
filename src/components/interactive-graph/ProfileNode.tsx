@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { Handle, Position, NodeProps, Node } from '@xyflow/react';
 import { useTaskStore, SyncStatus } from "@/store/useTaskStore";
+import clsx from "clsx";
 
 export type ProfileNodeData = {
   taskId: string;
@@ -41,13 +42,13 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
     .toUpperCase()
     .slice(0, 2);
 
-  // Tailwind classes for role badge colors
+  // Tailwind classes for role badge colors (Standardized for Service Map)
   const roleColors: Record<string, string> = {
-    "Responsible Owner": "bg-indigo-600",
-    Owner: "bg-indigo-600",
-    Contributor: "bg-green-600",
-    Helper: "bg-yellow-600",
-    Reviewer: "bg-purple-600",
+    "RESPONSIBLE OWNER": "bg-indigo-600 border-indigo-400/50 shadow-indigo-500/30 text-white font-black",
+    "OWNER": "bg-indigo-600 border-indigo-400/50 shadow-indigo-500/30 text-white font-black",
+    "CONTRIBUTOR": "bg-emerald-600 border-emerald-400/50 shadow-emerald-500/30 text-emerald-50 font-black",
+    "HELPER": "bg-amber-600 border-amber-400/50 shadow-amber-500/30 text-amber-50 font-black",
+    "REVIEWER": "bg-purple-600 border-purple-400/50 shadow-purple-500/30 text-purple-50 font-black",
   };
 
   // Status aura classes (Refined for Service Map)
@@ -100,12 +101,15 @@ const ProfileNode = ({ data }: NodeProps<ProfileNodeType>) => {
         
         {/* Role badge */}
         {!isTaskNode && (
-          <span
-            className={`mt-1 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded-full text-white shadow-md ${roleColors[role] || "bg-slate-600"}`}
+          <div
+            className={clsx(
+              "mt-1.5 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.15em] rounded-md border shadow-lg backdrop-blur-md transition-all group-hover:scale-110",
+              roleColors[role] || "bg-slate-700 border-slate-500 text-slate-100"
+            )}
             title={role}
           >
             {role}
-          </span>
+          </div>
         )}
       </div>
       

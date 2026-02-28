@@ -62,19 +62,19 @@ function buildGraphFromTasks(tasks: Task[]) {
       data: {
         id: task.id,
         name: task.title,
-        role: "Task",
+        role: "TASK",
         status: "IN_SYNC" as SyncStatus,
         isTaskNode: true,
       },
       draggable: false,
     });
 
-    // Categorise participants
-    const owner = task.participants.find((p) => p.role === "Responsible Owner");
+    // Categorise participants (Case-insensitive)
+    const owner = task.participants.find((p) => p.role.toUpperCase() === "RESPONSIBLE OWNER" || p.role.toUpperCase() === "OWNER");
     const contributors = task.participants.filter((p) =>
-      ["Contributor", "Helper"].includes(p.role)
+      ["CONTRIBUTOR", "HELPER"].includes(p.role.toUpperCase())
     );
-    const reviewers = task.participants.filter((p) => p.role === "Reviewer");
+    const reviewers = task.participants.filter((p) => p.role.toUpperCase() === "REVIEWER");
 
     // ── Owner node + Assignment edge (Task → Owner) ──────────────────────
     if (owner) {
@@ -87,7 +87,7 @@ function buildGraphFromTasks(tasks: Task[]) {
           taskId: task.id,
           userId: owner.userId,
           name: owner.name,
-          role: owner.role,
+          role: owner.role.toUpperCase(),
           status: owner.syncStatus,
         },
         draggable: false,
@@ -111,7 +111,7 @@ function buildGraphFromTasks(tasks: Task[]) {
             taskId: task.id,
             userId: c.userId,
             name: c.name,
-            role: c.role,
+            role: c.role.toUpperCase(),
             status: c.syncStatus,
           },
           draggable: false,
@@ -151,7 +151,7 @@ function buildGraphFromTasks(tasks: Task[]) {
             taskId: task.id,
             userId: r.userId,
             name: r.name,
-            role: r.role,
+            role: r.role.toUpperCase(),
             status: r.syncStatus,
           },
           draggable: false,
