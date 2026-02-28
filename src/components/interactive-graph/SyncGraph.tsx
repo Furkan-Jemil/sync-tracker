@@ -314,7 +314,7 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
 
 // ── Add Helper Modal Component (Shadcn-style) ──
 function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
-  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState("HELPER");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -328,7 +328,7 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
       const res = await fetch(`/api/tasks/${taskId}/participants`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, role }),
+        body: JSON.stringify({ email, role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to add helper");
@@ -358,12 +358,13 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">User ID</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">User Email</label>
             <input
               required
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              placeholder="Enter Target User CUID..."
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter Target User Email..."
               className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono"
             />
           </div>
