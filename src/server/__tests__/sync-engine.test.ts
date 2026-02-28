@@ -74,7 +74,7 @@ describe('Sync Engine - Status & Visibility', () => {
       body: JSON.stringify({ userId: user2Id, status: 'BLOCKED', note: 'Waiting on design' })
     });
 
-    const res = await syncRoute(req, { params: { id: taskId } });
+    const res = await syncRoute(req, { params: Promise.resolve({ taskId }) } as any);
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -98,7 +98,7 @@ describe('Sync Engine - Status & Visibility', () => {
       body: JSON.stringify({ userId: user2Id, status: 'HELP_REQUESTED', note: 'Need API keys' })
     });
 
-    await syncRoute(req, { params: { id: taskId } });
+    await syncRoute(req, { params: Promise.resolve({ taskId }) } as any);
 
     // Verify DB
     const updatedParticipant = await prisma.taskParticipant.findUnique({ where: { id: participantId } });
