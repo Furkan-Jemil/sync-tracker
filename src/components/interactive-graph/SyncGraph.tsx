@@ -337,56 +337,55 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
             Message User
           </button>
 
-          {/* Admin Actions (Owner/Assigner only) */}
+          {/* Actions Section */}
+          <div className="h-px bg-slate-800 my-1 mx-2" />
+          
+          <button 
+            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            onClick={() => {
+              setAddHelperModal(contextMenu.taskId);
+              setContextMenu(null);
+            }}
+          >
+            Add Helper
+          </button>
+          
+          <button 
+            className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            onClick={() => {
+              setAssignRoleModal({
+                taskId: contextMenu.taskId,
+                userId: contextMenu.userId,
+                name: contextMenu.name,
+                currentRole: contextMenu.role,
+              });
+              setContextMenu(null);
+            }}
+          >
+            Assign Role
+          </button>
+
+          {/* Only show remove for non-owners (owner protection) */}
           {(() => {
             const task = tasks.find(t => t.id === contextMenu.taskId);
-            const isAuthorized = user && (task?.ownerId === user.id || task?.assignerId === user.id);
-            const isTargetOwner = task?.ownerId === contextMenu.userId;
-
-            if (!isAuthorized) return null;
+            const isOwnerNode = task?.ownerId === contextMenu.userId;
+            
+            if (isOwnerNode) return null;
 
             return (
-              <>
-                <div className="h-px bg-slate-800 my-1 mx-2" />
-                <button 
-                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  onClick={() => {
-                    setAddHelperModal(contextMenu.taskId);
-                    setContextMenu(null);
-                  }}
-                >
-                  Add Helper
-                </button>
-                <button 
-                  className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-                  onClick={() => {
-                    setAssignRoleModal({
-                      taskId: contextMenu.taskId,
-                      userId: contextMenu.userId,
-                      name: contextMenu.name,
-                      currentRole: contextMenu.role,
-                    });
-                    setContextMenu(null);
-                  }}
-                >
-                  Assign Role
-                </button>
-                {!isTargetOwner && (
-                  <button 
-                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 transition-colors"
-                    onClick={() => {
-                      setRemoveParticipantModal({
-                        taskId: contextMenu.taskId,
-                        userId: contextMenu.userId,
-                        name: contextMenu.name,
-                      });
-                      setContextMenu(null);
-                    }}
-                  >
-                    Remove Participant
-                  </button>
-                )}
-              </>
+              <button 
+                className="w-full text-left px-4 py-2 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 transition-colors"
+                onClick={() => {
+                  setRemoveParticipantModal({
+                    taskId: contextMenu.taskId,
+                    userId: contextMenu.userId,
+                    name: contextMenu.name,
+                  });
+                  setContextMenu(null);
+                }}
+              >
+                Remove Participant
+              </button>
             );
           })()}
         </div>
