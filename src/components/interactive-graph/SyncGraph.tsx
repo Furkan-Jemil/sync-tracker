@@ -213,11 +213,16 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
   const [contextMenu, setContextMenu] = useState<{
     nodeId: string;
     taskId: string;
+    userId: string;
+    name: string;
+    role: string;
     top: number;
     left: number;
   } | null>(null);
 
-  const [addHelperModal, setAddHelperModal] = useState<string | null>(null); // taskId
+  const [addHelperModal, setAddHelperModal] = useState<string | null>(null);
+  const [assignRoleModal, setAssignRoleModal] = useState<{ taskId: string; userId: string; name: string; currentRole: string } | null>(null);
+  const [messageUserModal, setMessageUserModal] = useState<{ taskId: string; targetUserId: string; name: string } | null>(null);
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -227,6 +232,9 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
         setContextMenu({
           nodeId: node.id,
           taskId: node.data.taskId as string,
+          userId: node.data.userId as string,
+          name: node.data.name as string,
+          role: node.data.role as string,
           top: event.clientY,
           left: event.clientX,
         });
@@ -283,7 +291,12 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           <button 
             className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-indigo-500 hover:bg-opacity-20 transition-colors"
             onClick={() => {
-              alert("Role assignment requires elevated permissions.");
+              setAssignRoleModal({
+                taskId: contextMenu.taskId,
+                userId: contextMenu.userId,
+                name: contextMenu.name,
+                currentRole: contextMenu.role,
+              });
               setContextMenu(null);
             }}
           >
@@ -292,7 +305,11 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
           <button 
             className="w-full text-left px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-indigo-500 hover:bg-opacity-20 transition-colors"
             onClick={() => {
-              alert("Messaging protocol engaged.");
+              setMessageUserModal({
+                taskId: contextMenu.taskId,
+                targetUserId: contextMenu.userId,
+                name: contextMenu.name,
+              });
               setContextMenu(null);
             }}
           >
@@ -301,11 +318,20 @@ export const SyncGraph = ({ tasks }: SyncGraphProps) => {
         </div>
       )}
 
-      {/* Add Helper Modal (Reusing existing modal style) */}
+      {/* Modals */}
       {addHelperModal && (
-        <AddHelperModal 
-          taskId={addHelperModal} 
-          onClose={() => setAddHelperModal(null)} 
+        <AddHelperModal taskId={addHelperModal} onClose={() => setAddHelperModal(null)} />
+      )}
+      {assignRoleModal && (
+        <AssignRoleModal
+          data={assignRoleModal}
+          onClose={() => setAssignRoleModal(null)}
+        />
+      )}
+      {messageUserModal && (
+        <MessageUserModal
+          data={messageUserModal}
+          onClose={() => setMessageUserModal(null)}
         />
       )}
     </div>
@@ -358,13 +384,13 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
           )}
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">User Email</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">User Email / ID</label>
             <input
               required
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter Target User Email..."
+              placeholder="Enter Target User Identifier..."
               className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono"
             />
           </div>
@@ -383,19 +409,120 @@ function AddHelperModal({ taskId, onClose }: { taskId: string; onClose: () => vo
           </div>
 
           <div className="pt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-[2] h-10 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
-            >
+            <button type="button" onClick={onClose} className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-[2] h-10 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
               {loading ? "Processing..." : "Establish Link"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AssignRoleModal({ data, onClose }: { data: { taskId: string; userId: string; name: string; currentRole: string }; onClose: () => void }) {
+  const [role, setRole] = useState(data.currentRole);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${data.taskId}/participants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: data.userId, role }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Failed to assign role");
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+          <h2 className="text-sm font-bold text-white tracking-tight uppercase italic">Modify Role: <span className="text-indigo-400 font-mono">{data.name}</span></h2>
+          <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {errorMsg && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">{errorMsg}</div>}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select New Role</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full h-10 bg-slate-950 border border-slate-800 rounded-lg px-3 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all uppercase">
+              <option value="HELPER">Helper</option>
+              <option value="CONTRIBUTOR">Contributor</option>
+              <option value="REVIEWER">Reviewer</option>
+              <option value="OBSERVER">Observer</option>
+            </select>
+          </div>
+          <div className="pt-2 flex gap-2">
+            <button type="button" onClick={onClose} className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-[2] h-10 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all">
+              {loading ? "Processing..." : "Assign Role"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MessageUserModal({ data, onClose }: { data: { taskId: string; targetUserId: string; name: string }; onClose: () => void }) {
+  const [message, setMessage] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${data.taskId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: data.targetUserId, message }),
+      });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Failed to dispatch message");
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+          <h2 className="text-sm font-bold text-white tracking-tight uppercase italic">Transmit to: <span className="text-indigo-400 font-mono">{data.name}</span></h2>
+          <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded-full transition-colors text-slate-500 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {errorMsg && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium">{errorMsg}</div>}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Message Payload</label>
+            <textarea
+              required
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Enter direct message..."
+              className="w-full h-24 bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 placeholder:text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all font-mono align-top resize-none"
+            />
+          </div>
+          <div className="pt-2 flex gap-2">
+            <button type="button" onClick={onClose} className="flex-[1] h-10 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-lg transition-all">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-[2] h-10 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white font-black text-[10px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all">
+              {loading ? "Transmitting..." : "Dispatch"}
             </button>
           </div>
         </form>
