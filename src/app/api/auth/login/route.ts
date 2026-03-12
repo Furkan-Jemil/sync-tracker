@@ -20,8 +20,8 @@ export async function POST(req: Request) {
       where: { email },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    if (!user || !user.passwordHash) {
+      return NextResponse.json({ error: "Invalid credentials or use Google Sign-in" }, { status: 401 });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
