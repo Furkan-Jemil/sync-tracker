@@ -52,9 +52,9 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setError("");
     setIsGoogleLoading(true);
-    const supabase = createClient();
     
     try {
+      const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -63,6 +63,7 @@ export default function LoginPage() {
       });
       if (error) throw error;
     } catch (err: any) {
+      console.error("Google sign-in error:", err);
       setError(err.message || "Failed to sign in with Google.");
       setIsGoogleLoading(false);
     }
