@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { authClient } from "@/lib/auth-client";
 
 export interface User {
   id: string;
@@ -22,10 +23,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user, isInitializing: false }),
   checkSession: async () => {
     try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        set({ user: data.user, isAuthenticated: !!data.user, isInitializing: false });
+      const { data: session } = await authClient.getSession();
+      if (session) {
+        set({ 
+            user: { id: session.user.id, email: session.user.email, name: session.user.name || "" }, 
+            isAuthenticated: true, 
+            isInitializing: false 
+        });
       } else {
         set({ user: null, isAuthenticated: false, isInitializing: false });
       }
@@ -35,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   logout: async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await authClient.signOut();
       set({ user: null, isAuthenticated: false });
     } catch (error) {
       console.error("Logout failed", error);
