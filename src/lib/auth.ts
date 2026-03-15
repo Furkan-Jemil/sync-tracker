@@ -1,53 +1,48 @@
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { prisma } from "./prisma";
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+export const auth = betterAuth({
+    database: prismaAdapter(prisma, {
+        provider: "postgresql",
+    }),
+    socialProviders: {
+        google: {
+            clientId: process.env.GOOGLE_CLIENT_ID || "",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+        },
+    },
+    emailAndPassword: {
+        enabled: true,
+    },
+});
 
-export interface AuthenticatedUser {
-  userId: string;
-  email: string;
+export async function getSession() {
+    return await auth.api.getSession({
+        headers: await headers(),
+    });
 }
 
-/**
- * Extracts and verifies the JWT token from the request cookies or Authorization header.
- * Returns the decoded user payload, or null if invalid.
- */
-export function getUserFromRequest(req: NextRequest): AuthenticatedUser | null {
-  try {
-    let token = req.cookies.get("token")?.value;
-
-    if (!token) {
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader?.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
-    }
-
-    if (!token) {
-      return null;
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedUser;
-    return decoded;
-  } catch (error) {
-    console.error("[AUTH_ERROR] Invalid or expired token", error);
-    return null;
-  }
+export async function getUserFromRequest(req: NextRequest) {
+    const session = await auth.api.getSession({
+        headers: req.headers,
+    });
+    if (!session) return null;
+    return { userId: session.user.id, email: session.user.email };
 }
 
-/**
- * Helper to wrap route handlers requiring authentication.
- */
 export function withAuth(
-  handler: (req: NextRequest, user: AuthenticatedUser, params?: any) => Promise<NextResponse>
+    handler: (req: NextRequest, user: { userId: string; email: string }, params?: any) => Promise<NextResponse>
 ) {
-  return async (req: NextRequest, context?: any) => {
-    const user = getUserFromRequest(req);
+    return async (req: NextRequest, context?: any) => {
+        const session = await getSession();
 
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
-    return handler(req, user, context?.params);
-  };
+        return handler(req, { userId: session.user.id, email: session.user.email }, context?.params);
+    };
 }
