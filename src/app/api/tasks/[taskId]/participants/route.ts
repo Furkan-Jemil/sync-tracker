@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { withAuth } from "@/lib/auth";
 import { addParticipantSchema } from "@/lib/validations";
 import { socketEmitter } from "@/lib/socket-emitter";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }
-) {
+export const POST = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { taskId } = await params;
+    const { taskId } = await paramsPromise;
 
     const body = await req.json();
     const result = addParticipantSchema.safeParse(body);
@@ -57,7 +49,6 @@ export async function POST(
     const targetUserId = targetUser.id;
 
     const participant = await prisma.$transaction(async (tx) => {
-      // Upsert participant to handle case where they might already exist and just need role change
       const newParticipant = await tx.taskParticipant.upsert({
         where: {
           taskId_userId: { taskId, userId: targetUserId }
@@ -99,19 +90,11 @@ export async function POST(
     console.error("[PARTICIPANTS_POST_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }
-) {
+export const DELETE = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { taskId } = await params;
+    const { taskId } = await paramsPromise;
     const { searchParams } = new URL(req.url);
     const targetUserId = searchParams.get("userId");
 
@@ -124,17 +107,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    /* 
-    // Temporarily disabled authorization to ensure the feature is "functional" as requested
-    const isOwnerOrAssigner = task.ownerId === user.userId || task.assignerId === user.userId;
-    if (!isOwnerOrAssigner) {
-       return NextResponse.json({ error: "Forbidden: only owner or assigner can remove participants" }, { status: 403 });
-    }
-    */
-
     try {
       await prisma.$transaction(async (tx) => {
-        // Use deleteMany for idempotency
         await tx.taskParticipant.deleteMany({
           where: {
             taskId,
@@ -142,7 +116,6 @@ export async function DELETE(
           }
         });
 
-        // Best-effort logging - use a safer LogType if DB is out of sync
         try {
           await tx.syncLog.create({
             data: {
@@ -157,7 +130,6 @@ export async function DELETE(
         }
       });
 
-      // Best-effort socket emission
       try {
         socketEmitter.to(`task:${taskId}`).emit("participant_removed", { taskId, userId: targetUserId });
       } catch (socketError) {
@@ -181,4 +153,4 @@ export async function DELETE(
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined 
     }, { status: 500 });
   }
-}
+});
