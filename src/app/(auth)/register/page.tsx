@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Zap, Loader2, User, Mail, Lock } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -30,18 +30,17 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const { data, error: authError } = await authClient.signUp.email({
+        email,
+        password,
+        name,
       });
 
-      if (res.ok) {
-        await checkSession(); // Load user into store
-        router.push("/");
+      if (authError) {
+        setError(authError.message || "Registration failed");
       } else {
-        const data = await res.json();
-        setError(data.error || "Registration failed");
+        await checkSession();
+        router.push("/");
       }
     } catch (err) {
       setError("An unexpected error occurred.");
@@ -55,14 +54,10 @@ export default function RegisterPage() {
     setIsGoogleLoading(true);
     
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
+      await authClient.signIn.social({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
+        callbackURL: `${window.location.origin}/`,
       });
-      if (error) throw error;
     } catch (err: any) {
       console.error("Google sign-in error:", err);
       setError(err.message || "Failed to sign in with Google.");
