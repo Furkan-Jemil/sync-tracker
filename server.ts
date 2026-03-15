@@ -46,24 +46,23 @@ app.prepare().then(() => {
     adapter: (pubClient && subClient) ? createAdapter(pubClient, subClient) : undefined
   });
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
-      const cookieHeader = socket.request.headers.cookie || "";
-      const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
-      let token = match ? match[1] : null;
+      const { auth } = await import("./src/lib/auth");
+      const session = await auth.api.getSession({
+        headers: socket.request.headers as any,
+      });
 
-      if (!token) {
-        token = socket.handshake.auth?.token;
+      if (!session) {
+        return next(new Error("Authentication error: No active session"));
       }
 
-      if (!token) {
-        return next(new Error("Authentication error: No token provided"));
-      }
-
-      jwt.verify(token, JWT_SECRET);
+      // Attach user info to socket for later use
+      (socket as any).user = session.user;
       next();
     } catch (err) {
-      return next(new Error("Authentication error: Invalid token"));
+      console.error("[SOCKET_AUTH_ERROR]", err);
+      return next(new Error("Authentication error: Invalid session"));
     }
   });
 
