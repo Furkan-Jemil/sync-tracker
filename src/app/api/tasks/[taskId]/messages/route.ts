@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { withAuth } from "@/lib/auth";
 import { socketEmitter } from "@/lib/socket-emitter";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }
-) {
+export const POST = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { taskId } = await params;
+    const { taskId } = await paramsPromise;
     const body = await req.json();
     const { targetUserId, message } = body;
 
@@ -42,4 +34,4 @@ export async function POST(
     console.error("[MESSAGE_POST_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});

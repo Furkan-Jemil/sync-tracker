@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { withAuth } from "@/lib/auth";
 import { createMilestoneSchema } from "@/lib/validations";
 
-type MilestoneRouteContext = {
-  params: Promise<{ taskId: string }>;
-};
-
-export async function GET(req: NextRequest, context: MilestoneRouteContext) {
+export const GET = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { taskId } = await context.params;
+    const { taskId } = await paramsPromise;
 
     const milestones = await prisma.milestone.findMany({
       where: { taskId },
@@ -27,15 +19,11 @@ export async function GET(req: NextRequest, context: MilestoneRouteContext) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(req: NextRequest, context: MilestoneRouteContext) {
+export const POST = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const { taskId } = await context.params;
+    const { taskId } = await paramsPromise;
 
     const body = await req.json();
     const result = createMilestoneSchema.safeParse(body);
@@ -56,4 +44,4 @@ export async function POST(req: NextRequest, context: MilestoneRouteContext) {
       { status: 500 }
     );
   }
-}
+});
