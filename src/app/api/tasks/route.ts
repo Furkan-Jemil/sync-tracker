@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { withAuth } from "@/lib/auth";
 import { createTaskSchema } from "@/lib/validations";
 import { socketEmitter } from "@/lib/socket-emitter";
 
-export async function GET(req: NextRequest) {
+export const GET = withAuth(async (req, user) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const tasks = await prisma.task.findMany({
       where: {
         OR: [
@@ -42,15 +37,10 @@ export async function GET(req: NextRequest) {
     console.error("[TASKS_GET_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
 
-export async function POST(req: NextRequest) {
+export const POST = withAuth(async (req, user) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
     const result = createTaskSchema.safeParse(body);
 
@@ -101,4 +91,4 @@ export async function POST(req: NextRequest) {
     console.error("[TASKS_POST_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
