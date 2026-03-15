@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromRequest } from "@/lib/auth";
+import { withAuth } from "@/lib/auth";
 import { updateTaskSchema } from "@/lib/validations";
 import { socketEmitter } from "@/lib/socket-emitter";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }
-) {
+export const GET = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { taskId } = await params;
+    const { taskId } = await paramsPromise;
 
     const task = await prisma.task.findUnique({
       where: { id: taskId },
@@ -59,19 +51,11 @@ export async function GET(
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined 
     }, { status: 500 });
   }
-}
+});
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }
-) {
+export const PATCH = withAuth(async (req, user, paramsPromise) => {
   try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { taskId } = await params;
+    const { taskId } = await paramsPromise;
 
     // Check ownership or assignment to allow patch
     const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -96,7 +80,6 @@ export async function PATCH(
     });
 
     // Fire socket event to the task room
-    // Best-effort socket emission
     try {
       socketEmitter.to(`task:${taskId}`).emit("task_updated", { task: updatedTask });
     } catch (socketError) {
@@ -108,18 +91,11 @@ export async function PATCH(
     console.error("[TASK_PATCH_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ taskId: string }> }
-) {
-  try {
-    const user = getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+});
 
-    const { taskId } = await params;
+export const DELETE = withAuth(async (req, user, paramsPromise) => {
+  try {
+    const { taskId } = await paramsPromise;
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
@@ -131,8 +107,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden: only owner or assigner can delete task" }, { status: 403 });
     }
 
-    // Delete task (Prisma will handle cascading if configured, or we do it manually)
-    // In our schema, many relations might need cleanup if not onUpdate/onDelete Cascade
     await prisma.$transaction([
       prisma.syncLog.deleteMany({ where: { taskId } }),
       prisma.taskParticipant.deleteMany({ where: { taskId } }),
@@ -153,4 +127,4 @@ export async function DELETE(
     console.error("[TASK_DELETE_ERROR]", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+});
